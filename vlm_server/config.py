@@ -34,6 +34,9 @@ class ServerConfig(BaseSettings):
         extra="ignore",
     )
 
+    #: Container mode (``python -m vlm_server container``): start the server right away, or keep
+    #: the container idle so an operator starts it on demand with ``python -m vlm_server serve``.
+    autostart: bool = False
     #: Hugging Face model id (or local path) to serve.
     model: str = "Qwen/Qwen3-VL-8B-Instruct"
     #: Names clients may use in ``"model"``; the first is the canonical one.

@@ -25,6 +25,6 @@ COPY vlm_server ./vlm_server
 ENV PATH="/opt/vlm-engine/.venv/bin:${PATH}"
 
 EXPOSE 8100
-# The container only holds the environment; start the server on demand:
-#   docker compose exec vlm-cuda python -m vlm_server serve
-CMD ["sleep", "infinity"]
+# VLM_SERVER_AUTOSTART=true starts the server with the container; otherwise it idles and the
+# server is started on demand:  docker compose exec vlm-cuda python -m vlm_server serve
+CMD ["python", "-m", "vlm_server", "container"]

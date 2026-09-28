@@ -1,7 +1,7 @@
 # vlm-engine — one container per GPU vendor; the server itself starts on demand.
 #
 #   NVIDIA:  VLM_GPU=3 docker compose --profile cuda up -d --build
-#            docker compose exec vlm-cuda python -m vlm_server serve
+#            docker compose exec vlm-cuda python -m vlm_server serve   (or VLM_SERVER_AUTOSTART=true)
 #   AMD:     VLM_GPU=0 docker compose --profile rocm up -d --build        (MI250: one GCD)
 #            docker compose exec vlm-rocm python3 -m vlm_server serve
 #   Hosts with CDI instead of the nvidia runtime:
@@ -34,6 +34,7 @@ services:
     environment:
       VLM_SERVER_PLATFORM: cuda
       VLM_SERVER_PORT: "8100"
+      VLM_SERVER_AUTOSTART: ${VLM_SERVER_AUTOSTART:-false}
       # Only the reserved GPU is visible inside the container, so "auto" means that one.
       VLM_SERVER_GPU: auto
     deploy:
@@ -56,6 +57,7 @@ services:
     environment:
       VLM_SERVER_PLATFORM: rocm
       VLM_SERVER_PORT: "8100"
+      VLM_SERVER_AUTOSTART: ${VLM_SERVER_AUTOSTART:-false}
       # All /dev/dri nodes are passed through; exactly this GCD is made visible to vLLM.
       VLM_SERVER_GPU: "${VLM_GPU:-0}"
     devices:

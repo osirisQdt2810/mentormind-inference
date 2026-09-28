@@ -1,6 +1,7 @@
 """``python -m vlm_server <command>``.
 
 serve [--dry-run]   pick ONE GPU (CUDA or ROCm) and exec ``vllm serve`` on it
+container           Docker entrypoint: serve if VLM_SERVER_AUTOSTART=true, else stay idle
 smoke [--frames N]  health + model list + one multi-frame request against a running server
 """
 
@@ -16,6 +17,10 @@ def main(argv: list[str] | None = None) -> None:
         from vlm_server.serve.launch import main as serve
 
         serve(rest)
+    elif command == "container":
+        from vlm_server.serve.container import main as container
+
+        container(rest)
     elif command == "smoke":
         from vlm_server.tools.smoke import main as smoke
 
