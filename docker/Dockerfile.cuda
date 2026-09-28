@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+# vlm-engine on NVIDIA: the exact uv environment of the dev box (vLLM 0.16.0, torch 2.9.1+cu126).
+# CUDA 12.6 userspace runs on drivers >= 560. torch ships its own CUDA libraries; the devel image
+# only adds nvcc/gcc for the kernels Triton/FlashInfer compile on first use.
+FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_INSTALL_DIR=/opt/uv-python \
+    HF_HOME=/root/.cache/huggingface \
+    VLM_SERVER_PLATFORM=cuda \
+    VLM_SERVER_HOST=0.0.0.0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=ghcr.io/astral-sh/uv:0.12.19 /uv /uvx /usr/local/bin/
+
+WORKDIR /opt/vlm-engine
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --python 3.11 --no-install-project
+COPY vlm_server ./vlm_server
+ENV PATH="/opt/vlm-engine/.venv/bin:${PATH}"
+
+EXPOSE 8100
+# The container only holds the environment; start the server on demand:
+#   docker compose exec vlm-cuda python -m vlm_server serve
+CMD ["sleep", "infinity"]

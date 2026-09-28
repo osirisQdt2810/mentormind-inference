@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+# vlm-engine on AMD ROCm — tested target: MI250 (gfx90a, CDNA2), one GCD = one GPU.
+# vLLM comes prebuilt in AMD's image; only this repo's small launcher is added on top.
+# BASE must be a build whose PyTorch arch list contains gfx90a — check before a long download:
+#   docker run --rm "$BASE" python3 -c "import torch; print(torch.cuda.get_arch_list())"
+# "cdna" tags target the CDNA family (MI200/MI300); "gfx94X"/"gfx950" tags are MI300/MI350 only.
+ARG BASE=rocm/vllm:rocm7.14.1_cdna_ubuntu24.04_py3.14_pytorch_2.11_vllm_0.23.0
+FROM ${BASE}
+
+ENV PYTHONUNBUFFERED=1 \
+    HF_HOME=/root/.cache/huggingface \
+    VLM_SERVER_PLATFORM=rocm \
+    VLM_SERVER_HOST=0.0.0.0 \
+    PYTHONPATH=/opt/vlm-engine
+
+WORKDIR /opt/vlm-engine
+RUN python3 -m pip install --no-cache-dir "pydantic-settings>=2.3" "httpx>=0.27" "pillow>=10" \
+    || python3 -m pip install --no-cache-dir --break-system-packages \
+        "pydantic-settings>=2.3" "httpx>=0.27" "pillow>=10"
+COPY vlm_server ./vlm_server
+
+EXPOSE 8100
+# Start the server on demand:
+#   docker compose exec vlm-rocm python3 -m vlm_server serve
+CMD ["sleep", "infinity"]

@@ -1,0 +1,7 @@
+# Override for Docker hosts that expose GPUs through CDI (e.g. rootless Docker) instead of the
+# nvidia runtime:  docker compose -f docker-compose.yml -f docker-compose.cdi.yml --profile cuda up -d
+services:
+  vlm-cuda:
+    deploy: !reset {}
+    devices:
+      - "nvidia.com/gpu=${VLM_GPU:-0}"

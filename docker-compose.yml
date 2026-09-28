@@ -1,0 +1,68 @@
+# vlm-engine — one container per GPU vendor; the server itself starts on demand.
+#
+#   NVIDIA:  VLM_GPU=3 docker compose --profile cuda up -d --build
+#            docker compose exec vlm-cuda python -m vlm_server serve
+#   AMD:     VLM_GPU=0 docker compose --profile rocm up -d --build        (MI250: one GCD)
+#            docker compose exec vlm-rocm python3 -m vlm_server serve
+#   Hosts with CDI instead of the nvidia runtime:
+#            docker compose -f docker-compose.yml -f docker-compose.cdi.yml --profile cuda up -d
+#
+# The port is published on the host's loopback only; other machines use an SSH tunnel.
+name: vlm-engine
+
+x-common: &common
+  env_file:
+    # VLM_SERVER_API_KEY and friends; default = the host repo when this is 3rdparty/vlm_server.
+    - path: ${VLM_SECRETS_FILE:-../../.secrets/secrets.env}
+      required: false
+  volumes:
+    - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
+  ports:
+    - "127.0.0.1:${VLM_SERVER_PORT:-8100}:8100"
+  ipc: host
+  stdin_open: true
+  tty: true
+
+services:
+  vlm-cuda:
+    <<: *common
+    profiles: [cuda]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cuda
+    image: vlm-engine:cuda
+    environment:
+      VLM_SERVER_PLATFORM: cuda
+      VLM_SERVER_PORT: "8100"
+      # Only the reserved GPU is visible inside the container, so "auto" means that one.
+      VLM_SERVER_GPU: auto
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${VLM_GPU:-0}"]
+              capabilities: [gpu]
+
+  vlm-rocm:
+    <<: *common
+    profiles: [rocm]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rocm
+      args:
+        BASE: ${ROCM_VLLM_IMAGE:-rocm/vllm:rocm7.14.1_cdna_ubuntu24.04_py3.14_pytorch_2.11_vllm_0.23.0}
+    image: vlm-engine:rocm
+    environment:
+      VLM_SERVER_PLATFORM: rocm
+      VLM_SERVER_PORT: "8100"
+      # All /dev/dri nodes are passed through; exactly this GCD is made visible to vLLM.
+      VLM_SERVER_GPU: "${VLM_GPU:-0}"
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp=unconfined
+    shm_size: 16g
