@@ -11,8 +11,10 @@ from vlm_server.gpu.rocm import query_rocm
 
 def detect_platform(configured: str = "auto") -> Platform:
     """``cuda`` or ``rocm``: the configured one, else whichever vendor tool is installed."""
-    if configured in ("cuda", "rocm"):
-        return configured  # type: ignore[return-value]
+    if configured == "cuda":
+        return "cuda"
+    if configured == "rocm":
+        return "rocm"
     if shutil.which("nvidia-smi"):
         return "cuda"
     if shutil.which("amd-smi") or shutil.which("rocm-smi"):

@@ -7,8 +7,7 @@ import os
 import shlex
 
 from vlm_server.config import ServerConfig
-from vlm_server.gpu import GpuStatus, detect_platform, pick_gpu, query_gpus
-from vlm_server.gpu.rocm import GpuQueryError
+from vlm_server.gpu import GpuQueryError, GpuStatus, Platform, detect_platform, pick_gpu, query_gpus
 from vlm_server.serve.command import build_command, build_env
 
 
@@ -36,12 +35,13 @@ def main(args: list[str] | None = None) -> None:
     os.execve(argv[0], argv, env)
 
 
-def _choose_gpu(config: ServerConfig, platform: str) -> GpuStatus:
+def _choose_gpu(config: ServerConfig, platform: Platform) -> GpuStatus:
     try:
-        gpus = query_gpus(platform)  # type: ignore[arg-type]
+        gpus = query_gpus(platform)
     except GpuQueryError:
         if config.gpu == "auto":
             raise
-        # Explicit index and an unreadable vendor tool: trust the operator, assume a 64 GB GCD.
-        return GpuStatus(index=int(config.gpu), used_mib=0, total_mib=64 * 1024)
+        # Explicit index and an unreadable vendor tool: trust the operator. The size only picks
+        # the default context length, so assume the small (24 GB) case unless told otherwise.
+        return GpuStatus(index=int(config.gpu), used_mib=0, total_mib=24 * 1024)
     return pick_gpu(gpus, requested=config.gpu, min_free_gib=config.min_free_gib)

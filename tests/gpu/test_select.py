@@ -50,3 +50,14 @@ def test_configured_platform_wins_and_missing_tools_fail(monkeypatch: pytest.Mon
     assert detect_platform("rocm") == "rocm"
     with pytest.raises(RuntimeError, match="VLM_SERVER_PLATFORM"):
         detect_platform("auto")
+
+
+def test_missing_nvidia_smi_is_a_query_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vlm_server.gpu import GpuQueryError, nvidia
+
+    def absent(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("nvidia-smi")
+
+    monkeypatch.setattr(nvidia.subprocess, "run", absent)
+    with pytest.raises(GpuQueryError, match="VLM_SERVER_GPU"):
+        nvidia.query_nvidia()

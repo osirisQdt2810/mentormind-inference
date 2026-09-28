@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from vlm_server.gpu.models import GpuStatus
+from vlm_server.gpu.models import GpuQueryError, GpuStatus
 
 QUERY = "index,memory.used,memory.total,utilization.gpu"
 
@@ -26,10 +26,15 @@ def parse_nvidia_smi(csv_text: str) -> list[GpuStatus]:
 
 
 def query_nvidia() -> list[GpuStatus]:
-    out = subprocess.run(
-        ["nvidia-smi", f"--query-gpu={QUERY}", "--format=csv,noheader,nounits"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", f"--query-gpu={QUERY}", "--format=csv,noheader,nounits"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise GpuQueryError(
+            f"nvidia-smi unavailable ({exc}); set VLM_SERVER_GPU=<index> to pick the GPU directly."
+        ) from exc
     return parse_nvidia_smi(out)

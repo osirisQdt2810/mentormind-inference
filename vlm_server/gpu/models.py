@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 Platform = Literal["cuda", "rocm"]
 
 
+class GpuQueryError(RuntimeError):
+    """The vendor tool is missing or printed something the parser does not know."""
+
+
 class GpuStatus(BaseModel):
     """One GPU as reported by the vendor tool (nvidia-smi / rocm-smi / amd-smi)."""
 

@@ -30,6 +30,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.cuda
+      network: host
     image: vlm-engine:cuda
     environment:
       VLM_SERVER_PLATFORM: cuda
@@ -51,6 +52,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.rocm
+      network: host
       args:
         BASE: ${ROCM_VLLM_IMAGE:-rocm/vllm:rocm7.14.1_cdna_ubuntu24.04_py3.14_pytorch_2.11_vllm_0.23.0}
     image: vlm-engine:rocm

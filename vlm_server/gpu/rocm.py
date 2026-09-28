@@ -14,13 +14,9 @@ import shutil
 import subprocess
 from typing import Any
 
-from vlm_server.gpu.models import GpuStatus
+from vlm_server.gpu.models import GpuQueryError, GpuStatus
 
 _MIB = 1024 * 1024
-
-
-class GpuQueryError(RuntimeError):
-    """The vendor tool is missing or printed something this parser does not know."""
 
 
 def parse_rocm_smi(json_text: str) -> list[GpuStatus]:

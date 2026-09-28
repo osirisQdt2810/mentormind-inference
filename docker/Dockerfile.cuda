@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 # vlm-engine on NVIDIA: the exact uv environment of the dev box (vLLM 0.16.0, torch 2.9.1+cu126).
 # CUDA 12.6 userspace runs on drivers >= 560. torch ships its own CUDA libraries; the devel image
-# only adds nvcc/gcc for the kernels Triton/FlashInfer compile on first use.
+# only adds nvcc/gcc for the kernels Triton/FlashInfer compile on first use. TRITON_LIBCUDA_PATH
+# points Triton at the driver library the NVIDIA runtime/CDI mounts, even when ldconfig's cache
+# does not list it (rootless Docker).
 FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -10,6 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_INSTALL_DIR=/opt/uv-python \
     HF_HOME=/root/.cache/huggingface \
+    TRITON_LIBCUDA_PATH=/usr/lib/x86_64-linux-gnu \
     VLM_SERVER_PLATFORM=cuda \
     VLM_SERVER_HOST=0.0.0.0
 
