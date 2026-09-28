@@ -12,8 +12,8 @@ name: vlm-engine
 
 x-common: &common
   env_file:
-    # VLM_SERVER_API_KEY and friends; default = the host repo when this is 3rdparty/vlm_server.
-    - path: ${VLM_SECRETS_FILE:-../../.secrets/secrets.env}
+    # VLM_SERVER_API_KEY and friends; default = the host repo's .env when this is 3rdparty/vlm_server.
+    - path: ${VLM_SECRETS_FILE:-../../.env}
       required: false
   volumes:
     - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface

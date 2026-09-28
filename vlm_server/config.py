@@ -1,8 +1,8 @@
 """Server configuration from ``VLM_SERVER_*`` variables.
 
-Sources, later wins: ``<vlm-engine>/.env``, the secrets file (``VLM_SERVER_SECRETS_FILE``, default
-the host repo's ``.secrets/secrets.env`` when vlm-engine is its ``3rdparty/vlm_server``
-submodule), then the process environment.
+Sources, later wins: ``<vlm-engine>/.env``, the host repo's ``.env`` (``VLM_SERVER_SECRETS_FILE``
+overrides that path; the default assumes vlm-engine sits in its ``3rdparty/vlm_server``), then the
+process environment.
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
-SECRETS_FILE = Path(
-    os.environ.get("VLM_SERVER_SECRETS_FILE", SERVER_DIR.parent.parent / ".secrets" / "secrets.env")
+ENV_FILE = Path(
+    os.environ.get("VLM_SERVER_SECRETS_FILE", SERVER_DIR.parent.parent / ".env")
 )
 
 #: 24 GB cards (A5000/3090/4090/L4) fit 16k tokens of KV cache next to the bf16 weights; bigger
@@ -29,7 +29,7 @@ LARGE_GPU_MAX_MODEL_LEN = 32768
 class ServerConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="VLM_SERVER_",
-        env_file=(SERVER_DIR / ".env", SECRETS_FILE),
+        env_file=(SERVER_DIR / ".env", ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
     )

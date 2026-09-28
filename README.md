@@ -87,7 +87,7 @@ docker compose exec vlm-rocm python3 -m vlm_server serve
 | `VLM_GPU` | `0` | GPU (hoặc GCD) duy nhất được cấp cho container |
 | `HF_CACHE` | `~/.cache/huggingface` | Mount cache model, để khỏi tải lại 17 GB |
 | `VLM_SERVER_PORT` | `8100` | Port trên loopback của máy host |
-| `VLM_SECRETS_FILE` | `../../.secrets/secrets.env` | File chứa `VLM_SERVER_API_KEY` (không bắt buộc) |
+| `VLM_SECRETS_FILE` | `../../.env` | File chứa `VLM_SERVER_API_KEY` (không bắt buộc) |
 | `ROCM_VLLM_IMAGE` | `rocm/vllm:rocm7.14.1_cdna_…_vllm_0.23.0` | Image vLLM ROCm. Tag phải hỗ trợ gfx90a, kiểm tra bằng `python3 -c "import torch; print(torch.cuda.get_arch_list())"` |
 
 - Image CUDA dựng lại đúng môi trường uv của máy dev (`uv.lock`), trên `nvidia/cuda:12.6.3-devel`.
@@ -104,7 +104,7 @@ Từ máy khác: `ssh -N -L 8100:127.0.0.1:8100 <user>@<gpu-host>`. URL loopback
 Tailscale/CGNAT hay hostname LAN đều được tính là **local**; trỏ sang host public thì client tự coi
 là **cloud**, và dữ liệu nhà máy bị chặn.
 
-Token bảo vệ (tùy chọn): đặt `VLM_SERVER_API_KEY` trong file secrets (mặc định là `.secrets/secrets.env`
+Token bảo vệ (tùy chọn): đặt `VLM_SERVER_API_KEY` trong file secrets (mặc định là `.env` của repo chính
 của repo mẹ). Token được truyền cho vLLM qua biến `VLLM_API_KEY`, không qua command line, nên không lộ trong `ps`.
 
 ## 5. Số liệu đo (RTX A5000 24 GB, 28/9/2026)
