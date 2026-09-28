@@ -5,7 +5,7 @@
 #   AMD:     VLM_GPU=0 docker compose --profile rocm up -d --build        (MI250: one GCD)
 #            docker compose exec vlm-rocm python3 -m vlm_server serve
 #   Hosts with CDI instead of the nvidia runtime:
-#            docker compose -f docker-compose.yml -f docker-compose.cdi.yml --profile cuda up -d
+#            docker compose -f docker-compose.yml -f docker/docker-compose.cdi.yml --profile cuda up -d
 #
 # The port is published on the host's loopback only; other machines use an SSH tunnel.
 name: vlm-engine

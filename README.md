@@ -18,7 +18,7 @@ processing.vlm.providers ── HTTP ──► 127.0.0.1:8100/v1 ──► vLLM 
 | `vlm_server/gpu/` | Phát hiện nền tảng và chọn đúng 1 GPU: `nvidia.py` (nvidia-smi), `rocm.py` (amd-smi/rocm-smi), `select.py` |
 | `vlm_server/serve/` | `command.py` dựng lệnh và biến môi trường vLLM theo nền tảng; `launch.py` chạy lệnh đó |
 | `vlm_server/tools/smoke.py` | Kiểm tra một server đang chạy |
-| `docker/`, `docker-compose.yml` | Image CUDA và ROCm; container giữ sẵn môi trường, server bật khi cần |
+| `docker-compose.yml`, `docker/` | Chạy vlm-engine riêng (không cần repo chính): image CUDA và ROCm, override CDI `docker/docker-compose.cdi.yml`; container giữ sẵn môi trường, server bật khi cần |
 
 ## 1. Chạy trực tiếp trên máy NVIDIA (uv)
 
@@ -75,7 +75,7 @@ docker compose exec vlm-cuda python -m vlm_server serve        # Ctrl-C để d�
 docker compose exec vlm-cuda python -m vlm_server smoke --frames 48
 
 # Máy dùng CDI thay cho nvidia runtime (vd. rootless Docker)
-docker compose -f docker-compose.yml -f docker-compose.cdi.yml --profile cuda up -d --build
+docker compose -f docker-compose.yml -f docker/docker-compose.cdi.yml --profile cuda up -d --build
 
 # AMD MI250
 VLM_GPU=0 docker compose --profile rocm up -d --build
