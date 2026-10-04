@@ -15,9 +15,7 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
-ENV_FILE = Path(
-    os.environ.get("VLM_SERVER_SECRETS_FILE", SERVER_DIR.parent.parent / ".env")
-)
+ENV_FILE = Path(os.environ.get("VLM_SERVER_SECRETS_FILE", SERVER_DIR.parent.parent / ".env"))
 
 #: 24 GB cards (A5000/3090/4090/L4) fit 16k tokens of KV cache next to the bf16 weights; bigger
 #: cards (an MI250 GCD has 64 GB, A100/H100 40-80 GB) get 32k.
