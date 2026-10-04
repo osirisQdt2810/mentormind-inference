@@ -1,0 +1,13 @@
+# Ollama serving Qwen3-VL-8B (Q4_K_M) with a configurable image token floor (scripts/ollama/).
+#   docker build -f docker/Dockerfile.ollama -t vlm-engine:ollama-rocm .                     AMD (MI250)
+#   docker build -f docker/Dockerfile.ollama --build-arg BASE=ollama/ollama:0.35.1 \
+#                -t vlm-engine:ollama .                                                        NVIDIA / CPU
+# Settings: VLM_SERVER_IMAGE_MIN_TOKENS, VLM_SERVER_CONTEXT_LENGTH, VLM_SERVER_OLLAMA_MODEL.
+ARG BASE=ollama/ollama:0.35.1-rocm
+FROM ${BASE}
+RUN mv /usr/lib/ollama/llama-server /usr/lib/ollama/llama-server.real
+COPY scripts/ollama/llama-server-wrapper.sh /usr/lib/ollama/llama-server
+COPY docker/ollama-entrypoint.sh /usr/local/bin/vlm-ollama-entrypoint
+RUN chmod 0755 /usr/lib/ollama/llama-server /usr/local/bin/vlm-ollama-entrypoint
+EXPOSE 11434
+ENTRYPOINT ["/usr/local/bin/vlm-ollama-entrypoint"]

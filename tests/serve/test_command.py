@@ -16,7 +16,7 @@ MI250_GCD = GpuStatus(index=1, used_mib=10, total_mib=65520)
 
 
 def config(**values: object) -> ServerConfig:
-    return ServerConfig(_env_file=None, **values)  # type: ignore[arg-type]
+    return ServerConfig(_env_file=None, **{"backend": "vllm", **values})  # type: ignore[arg-type]
 
 
 def flag(argv: list[str], name: str) -> str:

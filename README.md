@@ -1,22 +1,30 @@
-# vlm-engine — Qwen3-VL-8B-Instruct tự host trên 1 GPU (NVIDIA hoặc AMD)
+# vlm-engine — Qwen3-VL-8B tự host (mặc định: Ollama, Q4)
 
-Server riêng, API tương thích OpenAI (`/v1/chat/completions`), chạy **vLLM** phục vụ
-**Qwen3-VL-8B-Instruct (BF16)** trên **đúng một GPU**, NVIDIA (CUDA) hoặc AMD (ROCm; với MI250 là
-một GCD). Repo `mentormind-knowhow-ai` gắn repo này làm submodule tại `3rdparty/vlm_server` và chỉ
-gọi HTTP qua provider `local_openai` (spec 04 FR-08). Vì chạy tại chỗ, đây là provider duy nhất
-được nhận dữ liệu `factory_confidential` (constitution Điều 2).
+Server API tương thích OpenAI (`/v1/chat/completions`) phục vụ Qwen3-VL-8B cho repo `mentormind-knowhow-ai`.
+Repo đó gắn repo này làm submodule tại `3rdparty/vlm_server` và chỉ gọi HTTP qua provider `local_openai`
+(spec 04 FR-08). Vì chạy tại chỗ, đây là provider duy nhất được nhận dữ liệu `factory_confidential`
+(constitution Điều 2).
+
+Có hai backend (`VLM_SERVER_BACKEND`):
+
+- **`ollama` (mặc định)**: `qwen3-vl:8b` Q4_K_M trên Ollama 0.35.1, chạy được trên macOS và Linux, cổng 11434.
+  - Một lệnh: `bash scripts/serve-ollama.sh` (thêm `--ngrok` để mở cho máy khác). Hướng dẫn cho người dùng ở **[scripts/README.md](scripts/README.md)**.
+  - Docker: `docker/Dockerfile.ollama`.
+  - Ollama tự ép mỗi ảnh Qwen-VL tốn tối thiểu 1024 token. `scripts/ollama/llama-server-wrapper.sh` đổi được mức này qua `VLM_SERVER_IMAGE_MIN_TOKENS` (mặc định 512; quét trên video LASI ngày 4/10, mức này cho chất lượng ngang bản BF16 và ít hơn 1024 khoảng 29% token).
+- **`vllm`**: Qwen3-VL-8B-Instruct BF16 trên vLLM, đúng 1 GPU NVIDIA hoặc AMD, cổng 8100 (phần còn lại của README này).
 
 ```
 mentormind-knowhow-ai                         vlm-engine (repo này)
-processing.vlm.providers ── HTTP ──► 127.0.0.1:8100/v1 ──► vLLM ──► 1 GPU
-   provider "local_openai"                    (1 index visible, tensor-parallel 1)
+provider "local_openai" ── HTTP ──► 127.0.0.1:11434/v1 ──► Ollama (llama-server, image-min-tokens) ──► GPU
+                                    127.0.0.1:8100/v1  ──► vLLM (1 GPU, tensor-parallel 1)
 ```
 
 | Thư mục | Nhiệm vụ |
 |---|---|
 | `vlm_server/config.py` | Cấu hình `VLM_SERVER_*` (`ServerConfig`) |
 | `vlm_server/gpu/` | Phát hiện nền tảng và chọn đúng 1 GPU: `nvidia.py` (nvidia-smi), `rocm.py` (amd-smi/rocm-smi), `select.py` |
-| `vlm_server/serve/` | `command.py` dựng lệnh và biến môi trường vLLM theo nền tảng; `launch.py` chạy lệnh đó |
+| `vlm_server/serve/` | `ollama.py` dựng lệnh `scripts/serve-ollama.sh`; `command.py` dựng lệnh và biến môi trường vLLM theo nền tảng; `launch.py` chạy backend đã chọn |
+| `scripts/` | `serve-ollama.sh` (macOS và Linux, một lệnh), `ollama/llama-server-wrapper.sh`, `README.md` hướng dẫn |
 | `vlm_server/tools/smoke.py` | Kiểm tra một server đang chạy |
 | `docker-compose.yml`, `docker/` | Chạy vlm-engine riêng (không cần repo chính): image CUDA và ROCm, override CDI `docker/docker-compose.cdi.yml`; container giữ sẵn môi trường, server bật khi cần |
 

@@ -31,7 +31,7 @@ def build_command(config: ServerConfig, gpu: GpuStatus) -> list[str]:
         "--host",
         config.host,
         "--port",
-        str(config.port),
+        str(config.serve_port),
         "--served-model-name",
         *config.served_model_names,
         "--tensor-parallel-size",

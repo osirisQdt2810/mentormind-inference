@@ -22,6 +22,8 @@ ENV_FILE = Path(os.environ.get("VLM_SERVER_SECRETS_FILE", SERVER_DIR.parent.pare
 SMALL_GPU_GIB = 32.0
 SMALL_GPU_MAX_MODEL_LEN = 16384
 LARGE_GPU_MAX_MODEL_LEN = 32768
+OLLAMA_PORT = 11434
+VLLM_PORT = 8100
 
 
 class ServerConfig(BaseSettings):
@@ -32,6 +34,17 @@ class ServerConfig(BaseSettings):
         extra="ignore",
     )
 
+    #: Inference engine. ollama = Qwen3-VL-8B Q4_K_M on Ollama (macOS + Linux, ``scripts/serve-ollama.sh``);
+    #: vllm = the BF16 model on vLLM (one CUDA/ROCm GPU).
+    backend: Literal["ollama", "vllm"] = "ollama"
+    #: Ollama only: model tag, release, context (prompt + answer) per request, and the token floor of
+    #: one image. Ollama alone forces 1024 tokens per Qwen-VL image (a 448x252 frame is 112 tokens at
+    #: its own size); the wrapper in scripts/ollama/ makes it configurable. 512 matched the BF16 vLLM
+    #: run on the LASI sweep (recall 0.111, actor 0.875) with 29% fewer tokens than 1024.
+    ollama_model: str = "qwen3-vl:8b"
+    ollama_version: str = "0.35.1"
+    context_length: int = 98304
+    image_min_tokens: int = 512
     #: Container mode (``python -m vlm_server container``): start the server right away, or keep
     #: the container idle so an operator starts it on demand with ``python -m vlm_server serve``.
     autostart: bool = False
@@ -45,8 +58,8 @@ class ServerConfig(BaseSettings):
     platform: Literal["auto", "cuda", "rocm"] = "auto"
     #: Loopback by default: reach it from another machine through an SSH tunnel.
     host: str = "127.0.0.1"
-    #: 8000 is the FastAPI backend (spec 08); the VLM server lives next to it.
-    port: int = 8100
+    #: Empty = the backend's usual port: 11434 (Ollama), 8100 (vLLM; 8000 is the FastAPI backend).
+    port: int | None = None
     #: ONE GPU index (an MI250 GCD counts as one GPU), or "auto" = the one with most free memory.
     gpu: str = "auto"
     #: "auto" refuses GPUs with less free memory than this.
@@ -81,6 +94,13 @@ class ServerConfig(BaseSettings):
             f"VLM_SERVER_GPU={value!r}: exactly one GPU index (e.g. 3) or 'auto' — "
             "this server never spans several GPUs."
         )
+
+    @property
+    def serve_port(self) -> int:
+        """``port``, or the backend's usual one."""
+        if self.port is not None:
+            return self.port
+        return OLLAMA_PORT if self.backend == "ollama" else VLLM_PORT
 
     def mm_processor_kwargs(self) -> dict[str, Any]:
         return {"max_pixels": self.max_pixels}

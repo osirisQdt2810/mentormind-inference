@@ -70,7 +70,7 @@ def main(args: list[str] | None = None) -> None:
     opts = parser.parse_args(args)
 
     config = ServerConfig()
-    base_url = (opts.base_url or f"http://{config.host}:{config.port}/v1").rstrip("/")
+    base_url = (opts.base_url or f"http://{config.host}:{config.serve_port}/v1").rstrip("/")
     headers = {}
     if config.api_key is not None and config.api_key.get_secret_value():
         headers["Authorization"] = f"Bearer {config.api_key.get_secret_value()}"
@@ -85,7 +85,9 @@ def main(args: list[str] | None = None) -> None:
     content: list[dict[str, Any]] = [{"type": "text", "text": PROMPT.format(n=len(jpegs))}]
     content += [{"type": "image_url", "image_url": {"url": _data_url(j)}} for j in jpegs]
     payload = {
-        "model": config.served_model_names[0],
+        "model": config.ollama_model
+        if config.backend == "ollama"
+        else config.served_model_names[0],
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.0,
         "max_tokens": 300,
