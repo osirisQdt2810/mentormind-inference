@@ -1,4 +1,4 @@
-"""``python -m vlm_server serve``: pick ONE GPU and exec ``vllm serve`` on it."""
+"""``python -m vlm_server serve``: Ollama (``VLM_SERVER_BACKEND=ollama``, default) or ``vllm serve`` on ONE GPU."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import shlex
 from vlm_server.config import ServerConfig
 from vlm_server.gpu import GpuQueryError, GpuStatus, Platform, detect_platform, pick_gpu, query_gpus
 from vlm_server.serve.command import build_command, build_env
+from vlm_server.serve.ollama import build_ollama_command
 
 
 def main(args: list[str] | None = None) -> None:
@@ -17,6 +18,12 @@ def main(args: list[str] | None = None) -> None:
     opts = parser.parse_args(args)
 
     config = ServerConfig()
+    if config.backend == "ollama":
+        argv = build_ollama_command(config)
+        print(f"[vlm_server] ollama: {shlex.join(argv)}", flush=True)
+        if not opts.dry_run:
+            os.execvp(argv[0], argv)
+        return
     platform = detect_platform(config.platform)
     gpu = _choose_gpu(config, platform)
     argv = build_command(config, gpu)
@@ -24,7 +31,7 @@ def main(args: list[str] | None = None) -> None:
     visible = "HIP_VISIBLE_DEVICES" if platform == "rocm" else "CUDA_VISIBLE_DEVICES"
     print(
         f"[vlm_server] {platform} GPU {gpu.index} ({gpu.free_gib:.1f}/{gpu.total_gib:.1f} GiB free)"
-        f" | http://{config.host}:{config.port}/v1 | model {config.served_model_names[0]}",
+        f" | http://{config.host}:{config.serve_port}/v1 | model {config.served_model_names[0]}",
         flush=True,
     )
     print(f"[vlm_server] {visible}={gpu.index} {shlex.join(argv)}", flush=True)
