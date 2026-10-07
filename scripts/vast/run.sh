@@ -2,6 +2,7 @@
 # MentorMind inference server on a Vast.ai PyTorch instance (run as root, after every Start):
 #
 #   vllm      (GPU) Qwen3-VL-8B-Instruct BF16 on 127.0.0.1:18000       supervisor service "vllm"
+#                   (VLM_VARIANT=thinking: Qwen3-VL-8B-Thinking + the qwen3 reasoning parser)
 #   gateway   (CPU) ASR + embeddings + documents, every other /v1/*    supervisor service "gateway"
 #                   proxied to vLLM, on 127.0.0.1:18080
 #   Caddy     token edge (Authorization: Bearer $OPEN_BUTTON_TOKEN), external 10100 -> gateway
@@ -22,7 +23,13 @@ set -euo pipefail
 
 main() { # parsed whole before it runs: updating the clone cannot change the script mid-run
 
-MODEL="Qwen/Qwen3-VL-8B-Instruct"
+VLM_VARIANT=${VLM_VARIANT:-instruct}   # instruct | thinking (Qwen3-VL-8B-Thinking: more accurate, ~15x slower)
+case "$VLM_VARIANT" in
+  instruct) MODEL="Qwen/Qwen3-VL-8B-Instruct" REASONING_ARGS='' ANSWER_TOKENS=8192 ;;
+  # The parser moves <think>…</think> out of the answer; structured output applies after it.
+  thinking) MODEL="Qwen/Qwen3-VL-8B-Thinking" REASONING_ARGS=',"--reasoning-parser","qwen3"' ANSWER_TOKENS=16384 ;;
+  *) echo "VLM_VARIANT=$VLM_VARIANT: instruct | thinking" >&2; exit 1 ;;
+esac
 VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt
 CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, default requirements/gateway-linux-cpu.txt
 ENGINE=/opt/mentormind-inference   # this repo: vLLM launcher + gateway
@@ -155,7 +162,7 @@ log "Gateway deps: $(rel "$GW_REQS")$GW_FROM ($GW_INSTALL)"
 sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "$VLLM_INSTALL" "vLLM (~5 phút lần đầu)"
 
 # 4. VLM weights (17 GB, once)
-if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.json >/dev/null 2>&1; then
+if ! ls "$HF_HOME"/hub/models--${MODEL//\//--}/snapshots/*/config.json >/dev/null 2>&1; then
   log "Tải $MODEL (~17 GB)…"
   /venv/main/bin/hf download "$MODEL"
 fi
@@ -175,7 +182,7 @@ if [ "$(cat "$MODELS_MARK" 2>/dev/null)" != "$MODELS_WANT" ]; then
 fi
 
 # 7. Supervisor services + Caddy entry
-EXTRA_ARGS='["--kv-cache-dtype","'$KV_CACHE_DTYPE'","--cpu-offload-gb","'$CPU_OFFLOAD_GB'","--mm-processor-kwargs","{\"min_pixels\":'$MIN_PIXELS',\"max_pixels\":'$MIN_PIXELS'}"]'
+EXTRA_ARGS='["--kv-cache-dtype","'$KV_CACHE_DTYPE'","--cpu-offload-gb","'$CPU_OFFLOAD_GB'","--mm-processor-kwargs","{\"min_pixels\":'$MIN_PIXELS',\"max_pixels\":'$MIN_PIXELS'}"'$REASONING_ARGS']'
 # The requirements hash is part of each script: new libraries restart the service that uses them
 # (the hash skips comments: editing a requirements header restarts nothing).
 write_if_changed "$SCRIPTS/vllm.sh" <<EOF
@@ -343,7 +350,8 @@ KNOWHOW_VLM_BASE_URL=$URL/v1
 KNOWHOW_VLM_MODEL=$MODEL
 KNOWHOW_VLM_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_VLM_MAX_FRAMES=40
-KNOWHOW_VLM_MAX_TOKENS=8192
+KNOWHOW_VLM_MAX_TOKENS=$ANSWER_TOKENS
+KNOWHOW_LLM_MAX_TOKENS=$ANSWER_TOKENS
 KNOWHOW_INFERENCE_URL=$URL/v1
 KNOWHOW_INFERENCE_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_ASR_PROVIDER=remote
