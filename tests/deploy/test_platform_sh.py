@@ -156,7 +156,7 @@ def test_run_sh_reexecs_itself_when_the_checkout_changes_it() -> None:
     """bash parses run.sh before the git checkout: a changed script must run as the new version, once."""
     script = (REPO / "scripts" / "vast" / "run.sh").read_text()
     copy_at = script.index('cp "${BASH_SOURCE[0]}" "$RUNNING_COPY"')
-    checkout_at = script.index('checkout -q --detach')
+    checkout_at = script.index("checkout -q --detach")
     reexec_at = script.index('RUN_SH_REEXEC=1 exec bash "$ENGINE/scripts/vast/run.sh" "$@"')
     assert copy_at < checkout_at < reexec_at
     assert '[ -z "${RUN_SH_REEXEC:-}" ]' in script
