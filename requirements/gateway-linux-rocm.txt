@@ -1,0 +1,19 @@
+# Platform: Linux with an AMD GPU (ROCm, e.g. MI250), gateway partly on the GPU. OPT-IN: the
+#   default on Linux, AMD boxes included, is gateway-linux-cpu.txt.
+# Install: torch must be a ROCm build, never PyPI's (PyPI's Linux torch is the CUDA build).
+#   a) Bare ROCm host: uv's auto backend reads the GPU (rocm_agent_enumerator) and picks PyTorch's
+#      ROCm index; when it cannot, name the index of the host's ROCm (cat /opt/rocm/.info/version),
+#      e.g. --torch-backend=rocm6.4:
+#        uv venv .venv-gateway --python 3.12
+#        uv pip install --python .venv-gateway/bin/python -r requirements/gateway-linux-rocm.txt --torch-backend=auto
+#   b) Inside AMD's vLLM image (docker/Dockerfile.rocm), where torch ROCm is already installed:
+#      pin that build so uv keeps it instead of fetching another one:
+#        python3 -c "import torch; print('torch==' + torch.__version__)" > /tmp/rocm-torch.txt
+#        uv pip install --system -r requirements/gateway-linux-rocm.txt -c /tmp/rocm-torch.txt
+#      That image runs Python 3.14 (tag py3.14): CTranslate2 and PyAV need wheels for it.
+# Tested: no. Resolution only (uv pip compile --python-platform x86_64-unknown-linux-gnu
+#   --python-version 3.12 --torch-backend rocm6.4); never installed or run on an AMD GPU.
+# What moves to the GPU: Docling's models only. CTranslate2 (faster-whisper) has no ROCm build,
+# and bge-m3 stays on CPU.
+-r gateway-common.txt
+torch>=2.2

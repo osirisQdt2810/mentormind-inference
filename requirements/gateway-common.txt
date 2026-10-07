@@ -1,0 +1,22 @@
+# Gateway libraries every platform shares (python -m vlm_server gateway): ASR, embeddings,
+# documents and the VLM proxy. No torch here: docling pulls it in, and each gateway-<platform>.txt
+# includes this file (-r) and decides which torch build that is.
+# Platform: any; never installed on its own.
+# Install: through the gateway file of your platform (gateway-linux-cpu.txt, gateway-macos.txt,
+#   gateway-linux-cuda.txt or gateway-linux-rocm.txt); bash scripts/lib/platform.sh prints which
+#   one and the exact command.
+# Tested: these are the lines of the former requirements-gateway.txt, which the Vast.ai deploy
+#   installed and ran (Linux x86_64, Python 3.12); through gateway-linux-cpu.txt and
+#   scripts/vast/run.sh: not yet.
+# Lower bounds follow mentormind-knowhow-ai's extras (api, video, ingest), so the engines compute
+# what MentorMind's local providers compute.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+pydantic-settings>=2.3
+faster-whisper>=1.1
+# PyAV 19 dropped av.open(metadata_errors=...), which faster-whisper 1.2.1 still passes: decode_audio crashes.
+av>=11,<19
+docling>=2.132
+transformers>=4.44

@@ -1,0 +1,14 @@
+# Platform: Linux (x86_64 or aarch64), gateway on CPU. The default on EVERY Linux box, GPU or not:
+#   the gateway runs on CPU by design and the GPU belongs to vLLM (on Vast vLLM takes 94% of it).
+# Install (scripts/vast/run.sh runs this command from the clone, plus -q):
+#   uv venv /opt/inference-cpu --python 3.12
+#   uv pip install --python /opt/inference-cpu/bin/python -r requirements/gateway-linux-cpu.txt --torch-backend=cpu
+# Tested: the same packages as the former requirements-gateway.txt, which the Vast.ai deploy
+#   installed and ran (Linux x86_64, Python 3.12, --torch-backend=cpu); this file through
+#   scripts/vast/run.sh: not yet.
+#   Resolves: uv pip compile requirements/gateway-linux-cpu.txt --python-platform x86_64-unknown-linux-gnu
+#   --python-version 3.12 --torch-backend cpu (torch 2.14.1+cpu on 2026-10-08).
+# torch is the CPU build: --torch-backend=cpu points uv at PyTorch's CPU index (PyPI's Linux torch
+# is the CUDA build, several GB of CUDA libraries for nothing).
+-r gateway-common.txt
+torch>=2.2
