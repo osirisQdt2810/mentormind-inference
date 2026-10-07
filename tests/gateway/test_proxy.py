@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import socket
 from collections.abc import AsyncIterator, Callable
@@ -162,3 +163,80 @@ def test_upstream_down_is_502_with_the_real_client() -> None:
 def test_unknown_non_v1_path_is_json_404() -> None:
     response = proxy_client(lambda request: httpx.Response(200)).get("/nope")
     assert response.status_code == 404 and response.json() == {"error": "Not Found"}
+
+
+# --- heartbeat: slow non-streaming answers keep a tunnel open -----------------------------------
+
+ANSWER = {"id": "chatcmpl-1", "choices": [{"message": {"content": "{}"}}]}
+
+
+def slow(seconds: float, status: int = 200, body: Any = ANSWER) -> Callable[[httpx.Request], Any]:
+    """An upstream that answers after ``seconds`` (a fresh body for every request)."""
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(seconds)
+        return upstream_json(status, body)
+
+    return handler
+
+
+def chat(client: TestClient, **body: Any) -> httpx.Response:
+    return client.post("/v1/chat/completions", json={"model": "m", "messages": [], **body})
+
+
+def test_slow_answer_gets_200_then_spaces_then_the_upstream_json() -> None:
+    client = proxy_client(slow(0.35), heartbeat_s=0.1)
+    res = chat(client)
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("application/json")
+    assert res.headers["x-gateway-heartbeat"] == "0.1"
+    assert res.content.startswith(b" ") and res.content.lstrip(b" ") == json.dumps(ANSWER).encode()
+    assert res.json() == ANSWER  # leading spaces are valid JSON whitespace
+
+
+def test_fast_answer_is_passed_through_untouched() -> None:
+    client = proxy_client(lambda request: upstream_json(400, {"error": "bad"}), heartbeat_s=5)
+    res = chat(client)
+    assert res.status_code == 400 and res.json() == {"error": "bad"}
+    assert "x-gateway-heartbeat" not in res.headers
+
+
+def test_streaming_requests_and_other_paths_get_no_heartbeat() -> None:
+    client = proxy_client(slow(0.3), heartbeat_s=0.05)
+    res = chat(client, stream=True)
+    assert "x-gateway-heartbeat" not in res.headers and res.content == json.dumps(ANSWER).encode()
+    res = client.get("/v1/models")
+    assert "x-gateway-heartbeat" not in res.headers
+
+
+def test_heartbeat_zero_turns_it_off() -> None:
+    client = proxy_client(slow(0.2), heartbeat_s=0)
+    res = chat(client)
+    assert "x-gateway-heartbeat" not in res.headers and res.content == json.dumps(ANSWER).encode()
+
+
+def test_heartbeat_requests_an_uncompressed_body() -> None:
+    seen: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        await asyncio.sleep(0.25)
+        return upstream_json(200, ANSWER)
+
+    client = proxy_client(handler, heartbeat_s=0.1)
+    res = client.post(
+        "/v1/chat/completions", json={"messages": []}, headers={"Accept-Encoding": "gzip"}
+    )
+    assert res.json() == ANSWER
+    assert seen[0].headers["accept-encoding"] == "identity"
+
+
+def test_upstream_lost_during_the_heartbeat_ends_with_an_error_json() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.25)
+        raise httpx.ConnectError("refused", request=request)
+
+    client = proxy_client(handler, heartbeat_s=0.1)
+    res = chat(client)
+    assert res.status_code == 200
+    assert "unreachable" in res.json()["error"]

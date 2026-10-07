@@ -55,7 +55,7 @@ Base URL của client là `<URL public>/v1`. Tên trường và cấu trúc dư�
 | `POST /v1/audio/transcriptions` | multipart: `file` (audio; nên là WAV 16 kHz mono, file nào ffmpeg đọc được cũng nhận); `language` tùy chọn (trống, thiếu hoặc `auto` = tự nhận); `model` tùy chọn; `response_format` chỉ nhận `verbose_json` (mặc định); `timestamp_granularities[]` bị bỏ qua (luôn có words) | `{"text","language","duration","segments":[{"id","start","end","text","words":[…]}],"words":[{"word","start","end","probability"}]}` |
 | `POST /v1/embeddings` | JSON `{"model": tùy chọn, "input": str \| [str]}` | `{"object":"list","model":"BAAI/bge-m3","data":[{"object":"embedding","index":i,"embedding":[…]}],"usage":{"prompt_tokens":n,"total_tokens":n}}` |
 | `POST /v1/documents/convert` | multipart: `file` (`.pdf`, `.docx`, `.xlsx`, `.pptx`) | `{"filename","num_pages","document": <DoclingDocument.export_to_dict()>}` |
-| `GET /v1/models`, `POST /v1/chat/completions` và mọi `/v1/*` khác | nguyên văn | proxy sang `INFERENCE_VLM_UPSTREAM`: giữ method, query, body, header (bỏ header hop-by-hop và `Host`), trả lại nguyên status, header và body; `"stream": true` (SSE) được chuyển tiếp theo từng chunk |
+| `GET /v1/models`, `POST /v1/chat/completions` và mọi `/v1/*` khác | nguyên văn | proxy sang `INFERENCE_VLM_UPSTREAM`: giữ method, query, body, header (bỏ header hop-by-hop và `Host`), trả lại nguyên status, header và body; `"stream": true` (SSE) được chuyển tiếp theo từng chunk; câu trả lời không stream chậm hơn `INFERENCE_HEARTBEAT_S` thì có heartbeat (bảng dưới) |
 
 | Lỗi | Khi nào |
 |---|---|
@@ -85,6 +85,7 @@ Chi tiết cần giữ đúng:
 | `INFERENCE_HOST` / `INFERENCE_PORT` | `127.0.0.1` / `18080` | Địa chỉ nghe |
 | `INFERENCE_VLM_UPSTREAM` | `http://127.0.0.1:18000` | VLM nhận các `/v1/*` còn lại |
 | `INFERENCE_PROXY_TIMEOUT_S` | `1800` | Thời gian chờ tối đa một request proxy |
+| `INFERENCE_HEARTBEAT_S` | `15` | `POST /v1/chat/completions` không stream mà chưa có câu trả lời sau chừng này giây: gateway gửi ngay header 200 JSON rồi một dấu cách sau mỗi chừng ấy giây tới khi có JSON (JSON bỏ qua khoảng trắng đầu). ngrok free trả 503 cho response im lặng khoảng 5 phút, mà model Thinking hay bước gộp có thể sinh lâu hơn. Lỗi upstream đến sau lúc đó vẫn mang body lỗi nhưng status 200 (header `X-Gateway-Heartbeat`). `0` = tắt |
 | `INFERENCE_ASR_MODEL` | `small` | Model faster-whisper (`small` = `Systran/faster-whisper-small`) |
 | `INFERENCE_ASR_DEVICE` / `INFERENCE_ASR_COMPUTE_TYPE` | `cpu` / `int8` | |
 | `INFERENCE_ASR_BEAM_SIZE` / `INFERENCE_ASR_VAD` | `5` / `true` | |

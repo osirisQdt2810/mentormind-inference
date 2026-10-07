@@ -147,7 +147,7 @@ def create_app(
 
     @app.api_route("/v1/{path:path}", methods=PROXY_METHODS, include_in_schema=False)
     async def vlm(request: Request, path: str) -> Response:
-        return await forward(request, client, cfg.vlm_upstream)
+        return await forward(request, client, cfg.vlm_upstream, heartbeat_s=cfg.heartbeat_s)
 
     return app
 
