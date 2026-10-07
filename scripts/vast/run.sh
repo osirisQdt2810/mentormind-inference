@@ -28,6 +28,10 @@ CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, defaul
 ENGINE=/opt/mentormind-inference   # this repo: vLLM launcher + gateway
 ENGINE_REPO=https://github.com/osirisQdt2810/mentormind-inference.git
 ENGINE_REF=${ENGINE_REF:-main}     # branch, tag or commit; pin a commit for identical instances
+# bash has already parsed this file: keep a copy of what is running, to notice below when the
+# checkout brings a different run.sh (then the new one runs, once; RUN_SH_REEXEC stops a loop).
+RUNNING_COPY=$(mktemp)
+cp "${BASH_SOURCE[0]}" "$RUNNING_COPY"
 VLLM_PORT=18000                    # vLLM, localhost only
 GATEWAY_PORT=18080                 # gateway, localhost only
 EXTERNAL_PORT=10100                # Caddy edge with token auth (an open port of this instance)
@@ -111,6 +115,12 @@ else
 fi
 ENGINE_COMMIT=$(git -C "$ENGINE" rev-parse --short HEAD)
 log "mentormind-inference @ $ENGINE_COMMIT ($ENGINE_REF)"
+if [ -z "${RUN_SH_REEXEC:-}" ] && ! cmp -s "$RUNNING_COPY" "$ENGINE/scripts/vast/run.sh"; then
+  rm -f "$RUNNING_COPY"
+  log "run.sh của $ENGINE_COMMIT khác bản đang chạy: chạy lại bằng bản mới…"
+  RUN_SH_REEXEC=1 exec bash "$ENGINE/scripts/vast/run.sh" "$@"
+fi
+rm -f "$RUNNING_COPY"
 
 # 2. Platform -> requirements files (the mapping lives in the clone: scripts/lib/platform.sh)
 if [ ! -f "$ENGINE/scripts/lib/platform.sh" ]; then
