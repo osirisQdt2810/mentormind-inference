@@ -1,34 +1,166 @@
-# vlm-engine — Qwen3-VL-8B tự host (mặc định: Ollama, Q4)
+# mentormind-inference — máy chủ suy luận của MentorMind
 
-Server API tương thích OpenAI (`/v1/chat/completions`) phục vụ Qwen3-VL-8B cho repo `mentormind-knowhow-ai`.
-Repo đó gắn repo này làm submodule tại `3rdparty/vlm_server` và chỉ gọi HTTP qua provider `local_openai`
-(spec 04 FR-08). Vì chạy tại chỗ, đây là provider duy nhất được nhận dữ liệu `factory_confidential`
-(constitution Điều 2).
+Repo này chạy mọi phần suy luận mà `mentormind-knowhow-ai` gọi qua HTTP:
 
-Có hai backend (`VLM_SERVER_BACKEND`):
+- **VLM** Qwen3-VL-8B, API tương thích OpenAI (`/v1/chat/completions`), chạy trên GPU bằng vLLM hoặc Ollama.
+- **Gateway CPU** (FastAPI): nhận dạng giọng nói (faster-whisper), embeddings (bge-m3), chuyển đổi tài
+  liệu (Docling). Mọi đường dẫn `/v1/*` khác được reverse-proxy sang VLM, nên **một URL public** (một domain
+  ngrok, sau lớp Caddy kiểm tra token) phục vụ tất cả.
+
+Tên cũ của repo là `vlm-engine`. Gói Python vẫn là `vlm_server`, CLI vẫn là `python -m vlm_server <lệnh>`.
+MentorMind gắn repo này làm submodule tại `3rdparty/vlm_server`. Chạy tại máy mình (loopback, IP private) thì
+đây là provider duy nhất được nhận dữ liệu `factory_confidential` (constitution Điều 2).
+
+```
+mentormind-knowhow-ai                                    mentormind-inference (repo này)
+KNOWHOW_VLM_BASE_URL  ─┐                              ┌─ POST /v1/audio/transcriptions ─► faster-whisper (CPU)
+KNOWHOW_INFERENCE_URL ─┴► https://<domain>/v1 ─► Caddy :10100 ─► gateway :18080 ─┼─ POST /v1/embeddings ──────────► bge-m3 (CPU)
+                          (Authorization: Bearer)    (kiểm tra token)             ├─ POST /v1/documents/convert ───► Docling (CPU)
+                                                                                  └─ /v1/* còn lại ──────────────► vLLM :18000 (GPU)
+```
+
+VLM có hai backend (`VLM_SERVER_BACKEND`):
 
 - **`ollama` (mặc định)**: `qwen3-vl:8b` Q4_K_M trên Ollama 0.35.1, chạy được trên macOS và Linux, cổng 11434.
   - Một lệnh: `bash scripts/serve-ollama.sh` (thêm `--ngrok` để mở cho máy khác). Hướng dẫn cho người dùng ở **[scripts/README.md](scripts/README.md)**.
   - Docker: `docker/Dockerfile.ollama`.
   - Ollama tự ép mỗi ảnh Qwen-VL tốn tối thiểu 1024 token. `scripts/ollama/llama-server-wrapper.sh` đổi được mức này qua `VLM_SERVER_IMAGE_MIN_TOKENS` (mặc định 512; quét trên video LASI ngày 4/10, mức này cho chất lượng ngang bản BF16 và ít hơn 1024 khoảng 29% token).
-- **`vllm`**: Qwen3-VL-8B-Instruct BF16 trên vLLM, đúng 1 GPU NVIDIA hoặc AMD, cổng 8100 (phần còn lại của README này).
-
-```
-mentormind-knowhow-ai                         vlm-engine (repo này)
-provider "local_openai" ── HTTP ──► 127.0.0.1:11434/v1 ──► Ollama (llama-server, image-min-tokens) ──► GPU
-                                    127.0.0.1:8100/v1  ──► vLLM (1 GPU, tensor-parallel 1)
-```
+- **`vllm`**: Qwen3-VL-8B-Instruct BF16 trên vLLM, đúng 1 GPU NVIDIA hoặc AMD, cổng 8100 (mục 3 đến 5). Bản deploy
+  trên Vast.ai (mục 2) dùng backend này, cổng 18000, phía sau gateway.
 
 | Thư mục | Nhiệm vụ |
 |---|---|
 | `vlm_server/config.py` | Cấu hình `VLM_SERVER_*` (`ServerConfig`) |
 | `vlm_server/gpu/` | Phát hiện nền tảng và chọn đúng 1 GPU: `nvidia.py` (nvidia-smi), `rocm.py` (amd-smi/rocm-smi), `select.py` |
 | `vlm_server/serve/` | `ollama.py` dựng lệnh `scripts/serve-ollama.sh`; `command.py` dựng lệnh và biến môi trường vLLM theo nền tảng; `launch.py` chạy backend đã chọn |
-| `scripts/` | `serve-ollama.sh` (macOS và Linux, một lệnh), `ollama/llama-server-wrapper.sh`, `README.md` hướng dẫn |
-| `vlm_server/tools/smoke.py` | Kiểm tra một server đang chạy |
-| `docker-compose.yml`, `docker/` | Chạy vlm-engine riêng (không cần repo chính): image CUDA và ROCm, override CDI `docker/docker-compose.cdi.yml`; container giữ sẵn môi trường, server bật khi cần |
+| `vlm_server/gateway/` | Gateway CPU: `config.py` (`INFERENCE_*`), `app.py` (`create_app`), `asr.py`, `embeddings.py`, `documents.py` (engine nạp thư viện nặng khi cần), `proxy.py` (proxy sang VLM), `cli.py` (`python -m vlm_server gateway`) |
+| `requirements-gateway.txt` | Thư viện của venv CPU chạy gateway (torch bản CPU) |
+| `scripts/` | `serve-ollama.sh` (macOS và Linux, một lệnh), `ollama/llama-server-wrapper.sh`, `README.md` hướng dẫn; `vast/run.sh` deploy lên Vast.ai (`run.sh` ở gốc repo gọi lại script này) |
+| `vlm_server/tools/smoke.py` | Kiểm tra một server VLM đang chạy |
+| `docker-compose.yml`, `docker/` | Chạy VLM riêng (không cần repo chính): image CUDA và ROCm, override CDI `docker/docker-compose.cdi.yml`; container giữ sẵn môi trường, server bật khi cần |
 
-## 1. Chạy trực tiếp trên máy NVIDIA (uv)
+## 1. Gateway CPU: ASR, embeddings, tài liệu và proxy VLM
+
+`python -m vlm_server gateway` nghe ở `INFERENCE_HOST:INFERENCE_PORT` (mặc định `127.0.0.1:18080`). Gateway
+không tự kiểm tra token: Caddy đứng trước làm việc đó (`Authorization: Bearer`). Mọi body đều là JSON.
+
+### Hợp đồng API
+
+Base URL của client là `<URL public>/v1`. Tên trường và cấu trúc dưới đây là cố định: client trong
+`mentormind-knowhow-ai` được viết theo đúng hợp đồng này.
+
+| Endpoint | Đầu vào | Đầu ra |
+|---|---|---|
+| `GET /health` | | `{"status":"ok","vlm_upstream":"<url>","services":{"asr":"<model>","embeddings":"<model>","documents":"docling"}}` |
+| `POST /v1/audio/transcriptions` | multipart: `file` (audio; nên là WAV 16 kHz mono, file nào ffmpeg đọc được cũng nhận); `language` tùy chọn (trống, thiếu hoặc `auto` = tự nhận); `model` tùy chọn; `response_format` chỉ nhận `verbose_json` (mặc định); `timestamp_granularities[]` bị bỏ qua (luôn có words) | `{"text","language","duration","segments":[{"id","start","end","text","words":[…]}],"words":[{"word","start","end","probability"}]}` |
+| `POST /v1/embeddings` | JSON `{"model": tùy chọn, "input": str \| [str]}` | `{"object":"list","model":"BAAI/bge-m3","data":[{"object":"embedding","index":i,"embedding":[…]}],"usage":{"prompt_tokens":n,"total_tokens":n}}` |
+| `POST /v1/documents/convert` | multipart: `file` (`.pdf`, `.docx`, `.xlsx`, `.pptx`) | `{"filename","num_pages","document": <DoclingDocument.export_to_dict()>}` |
+| `GET /v1/models`, `POST /v1/chat/completions` và mọi `/v1/*` khác | nguyên văn | proxy sang `INFERENCE_VLM_UPSTREAM`: giữ method, query, body, header (bỏ header hop-by-hop và `Host`), trả lại nguyên status, header và body; `"stream": true` (SSE) được chuyển tiếp theo từng chunk |
+
+| Lỗi | Khi nào |
+|---|---|
+| 400 `{"error": …}` | File rỗng, `response_format` khác `verbose_json`, `input` rỗng, audio không giải mã được |
+| 422 `{"error": …}` | Thiếu trường/sai kiểu; tài liệu không thuộc 4 định dạng trên hoặc Docling không chuyển được |
+| 502 `{"error": …}` | VLM upstream không trả lời |
+| 503 `{"error": …}` | Engine chưa cài thư viện (faster-whisper, torch/transformers, docling) hoặc không nạp được model |
+
+Chi tiết cần giữ đúng:
+
+- **ASR**: faster-whisper `word_timestamps=True`, `beam_size=INFERENCE_ASR_BEAM_SIZE`, `vad_filter=INFERENCE_ASR_VAD`.
+  `word` là **token thô** đúng như faster-whisper trả về, **giữ khoảng trắng đầu**: client ghép các từ bằng
+  cách nối chuỗi, tiếng Thái nối liền không có dấu cách. `segments[].text` đã strip. Thời gian âm được kẹp về 0.
+  `language` là mã ISO 639-1 do faster-whisper nhận ra (ví dụ `th`).
+- **Embeddings**: tính y hệt embedder local của MentorMind: `AutoTokenizer` + `AutoModel(...).eval()`,
+  `padding=True, truncation=True, max_length=1024`, `torch.no_grad()`, vector = `last_hidden_state[:, 0]` (CLS),
+  rồi chuẩn hóa L2 bằng Python (chia cho norm nếu norm > 0). Mỗi lượt chạy 16 câu (`INFERENCE_EMBED_BATCH`),
+  như phía local. Đã so trên máy dev: cùng danh sách câu thì vector remote **bằng tuyệt đối** vector local.
+  Một câu đứng riêng và cùng câu đó trong một batch có thể lệch ở chữ số cuối (padding), ở cả hai phía.
+- **Tài liệu**: Docling `DocumentConverter().convert(path)` với cấu hình mặc định (có OCR vùng ảnh).
+- Mỗi engine nạp model ở lần gọi đầu, giữ lại, và xử lý tuần tự (một khóa cho mỗi engine). Ba engine chạy song song với nhau.
+
+### Cấu hình (`INFERENCE_*`)
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `INFERENCE_HOST` / `INFERENCE_PORT` | `127.0.0.1` / `18080` | Địa chỉ nghe |
+| `INFERENCE_VLM_UPSTREAM` | `http://127.0.0.1:18000` | VLM nhận các `/v1/*` còn lại |
+| `INFERENCE_PROXY_TIMEOUT_S` | `1800` | Thời gian chờ tối đa một request proxy |
+| `INFERENCE_ASR_MODEL` | `small` | Model faster-whisper (`small` = `Systran/faster-whisper-small`) |
+| `INFERENCE_ASR_DEVICE` / `INFERENCE_ASR_COMPUTE_TYPE` | `cpu` / `int8` | |
+| `INFERENCE_ASR_BEAM_SIZE` / `INFERENCE_ASR_VAD` | `5` / `true` | |
+| `INFERENCE_EMBED_MODEL` / `INFERENCE_EMBED_BATCH` | `BAAI/bge-m3` / `16` | Phải trùng model embedder local của MentorMind |
+
+Docling đọc thêm biến của chính nó, ví dụ `DOCLING_ARTIFACTS_PATH` (thư mục model đã tải sẵn, xem mục 2).
+
+### Chạy tại chỗ
+
+Gateway dùng venv riêng với torch bản CPU, tách khỏi venv vLLM:
+
+```bash
+uv venv .venv-gateway --python 3.12
+uv pip install --python .venv-gateway/bin/python -r requirements-gateway.txt --torch-backend=cpu
+INFERENCE_VLM_UPSTREAM=http://127.0.0.1:8100 .venv-gateway/bin/python -m vlm_server gateway
+curl -s http://127.0.0.1:18080/health
+curl -s http://127.0.0.1:18080/v1/embeddings -H 'Content-Type: application/json' -d '{"input": "xin chào"}'
+curl -s http://127.0.0.1:18080/v1/audio/transcriptions -F file=@clip.wav -F language=th
+curl -s http://127.0.0.1:18080/v1/documents/convert -F file=@sop.pdf
+```
+
+Lần gọi đầu mỗi endpoint sẽ tải model vào cache Hugging Face (`HF_HOME`): Whisper small khoảng 0,5 GB,
+bge-m3 khoảng 2,3 GB, model của Docling khoảng 0,7 GB trở lên.
+
+## 2. Deploy trên Vast.ai: `scripts/vast/run.sh`
+
+Dành cho một instance Vast.ai dùng template PyTorch (chạy bằng root, có Caddy portal và supervisor). Script tự
+clone repo này, nên chỉ cần chép riêng file đó lên máy, hoặc chạy `bash run.sh` từ một bản clone. Chạy lại sau
+mỗi lần Start:
+
+```bash
+curl -fsSLo run.sh https://raw.githubusercontent.com/osirisQdt2810/mentormind-inference/main/scripts/vast/run.sh
+bash run.sh
+```
+
+Các bước:
+
+1. Cài vLLM vào `/opt/vllm` (một lần) và tải `Qwen/Qwen3-VL-8B-Instruct` (17 GB, một lần).
+2. Clone hoặc cập nhật repo vào `/opt/mentormind-inference` theo `ENGINE_REF` (mặc định `main`; đặt một commit để mọi instance chạy cùng một bản).
+3. Tạo venv CPU `/opt/inference-cpu`: `uv venv` rồi `uv pip install -r requirements-gateway.txt --torch-backend=cpu`.
+   Chỉ cài lại khi venv chưa có hoặc `requirements-gateway.txt` đổi (lưu hash trong `/opt/inference-cpu/.requirements.sha256`).
+4. Tải sẵn model CPU vào `HF_HOME` một lần: `Systran/faster-whisper-small`, `BAAI/bge-m3`, và model của Docling
+   (`docling-tools models download` vào `$HF_HOME/docling-models`, gateway đọc qua `DOCLING_ARTIFACTS_PATH`).
+5. Hai service supervisor: `vllm` (`python -m vlm_server serve`, `127.0.0.1:18000`) và `gateway`
+   (`python -m vlm_server gateway` từ venv CPU, `127.0.0.1:18080`, `INFERENCE_VLM_UPSTREAM=http://127.0.0.1:18000`).
+   Mục portal `vLLM` của Caddy trỏ cổng ngoài **10100 → 18080** (gateway). Một service chỉ được khởi động lại khi
+   script sinh ra cho nó thay đổi hoặc nó không ở trạng thái RUNNING. Script của gateway ghi kèm commit và hash
+   requirements, nên code mới chỉ khởi động lại gateway (vài giây), không đụng vLLM (vài phút).
+6. Mở URL public: domain tĩnh ngrok nếu máy có authtoken ngrok, nếu không thì Cloudflare quick tunnel (URL đổi sau mỗi lần Start).
+7. Tự kiểm tra qua URL public: `GET /v1/models` (200 khi có token) và `POST /v1/embeddings` với `"xin chào"` (vector 1024 chiều).
+8. In ra các dòng `.env` cho client MentorMind (lưu ở `/root/mentormind-inference.env`):
+
+```
+KNOWHOW_VLM_BASE_URL=https://<domain>/v1
+KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
+KNOWHOW_VLM_API_KEY=<token>
+KNOWHOW_VLM_MAX_FRAMES=40
+KNOWHOW_VLM_MAX_TOKENS=8192
+KNOWHOW_INFERENCE_URL=https://<domain>/v1
+KNOWHOW_INFERENCE_API_KEY=<token>
+KNOWHOW_ASR_PROVIDER=remote
+KNOWHOW_EMBEDDER=remote
+KNOWHOW_DOC_EXTRACTOR=remote
+```
+
+| Biến của script | Mặc định | Ý nghĩa |
+|---|---|---|
+| `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
+| `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
+| `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
+| `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |
+| `ASR_MODEL` / `EMBED_MODEL` | `small` / `BAAI/bge-m3` | Model của gateway |
+
+Log: `/var/log/portal/vllm.log`, `/var/log/portal/gateway.log`, `/var/log/portal/ngrok.log`.
+
+## 3. VLM trên máy NVIDIA (uv)
 
 | Thứ | Giá trị đã kiểm tra |
 |---|---|
@@ -52,10 +184,10 @@ Từ repo `mentormind-knowhow-ai`: `make vlm-server`, `make vlm-server-smoke`, `
 index đó được đặt visible, và vLLM chạy `--tensor-parallel-size 1`. **Server chạy theo nhu cầu**:
 khởi động mất 1–3 phút, dùng xong thì `Ctrl-C` để trả GPU (máy dev dùng chung).
 
-## 2. AMD MI250 (ROCm)
+## 4. AMD MI250 (ROCm)
 
 MI250 có 2 GCD, mỗi GCD 64 GB. ROCm coi mỗi GCD là một GPU, và server dùng **một GCD**. Chạy bằng
-Docker là đường ngắn nhất, vì vLLM cho ROCm có sẵn trong image của AMD (mục 3). Nếu chạy trên máy đã
+Docker là đường ngắn nhất, vì vLLM cho ROCm có sẵn trong image của AMD (mục 5). Nếu chạy trên máy đã
 cài sẵn vLLM ROCm:
 
 ```bash
@@ -72,7 +204,7 @@ VLM_SERVER_PLATFORM=rocm VLM_SERVER_GPU=0 python3 -m vlm_server serve --dry-run
 - **Chưa chạy thật trên MI250.** Các parser amd-smi/rocm-smi được viết theo định dạng JSON đã biết và
   đã có test. Nếu output trên máy bạn khác, hãy gửi lại output của `amd-smi metric --mem-usage --json`.
 
-## 3. Docker: build một lần, `exec` vào là có môi trường
+## 5. Docker: build một lần, `exec` vào là có môi trường
 
 Container chỉ giữ môi trường (`sleep infinity`); server bật khi cần.
 
@@ -103,7 +235,7 @@ docker compose exec vlm-rocm python3 -m vlm_server serve
 - **Cả hai image mới được kiểm tra bằng `docker build --check` và `docker compose config`**. Chưa
   build thật trên máy dev vì phân vùng `/home` chỉ còn khoảng 14 GB, trong khi image CUDA khoảng 17 GB.
 
-## 4. Nối client vào server
+## 6. Nối client vào server
 
 `mentormind-knowhow-ai` trỏ sẵn tới server, không cần cấu hình: `KNOWHOW_VLM_PROVIDER=local_openai`,
 `http://127.0.0.1:8100/v1`, model `Qwen/Qwen3-VL-8B-Instruct`.
@@ -115,7 +247,11 @@ là **cloud**, và dữ liệu nhà máy bị chặn.
 Token bảo vệ (tùy chọn): đặt `VLM_SERVER_API_KEY` trong file secrets (mặc định là `.env` của repo chính
 của repo mẹ). Token được truyền cho vLLM qua biến `VLLM_API_KEY`, không qua command line, nên không lộ trong `ps`.
 
-## 5. Số liệu đo (RTX A5000 24 GB, 28/9/2026)
+Bản deploy Vast.ai (mục 2) dùng một URL public cho cả VLM và gateway: chép các dòng `KNOWHOW_*` mà
+`scripts/vast/run.sh` in ra vào `.env` của MentorMind (`KNOWHOW_VLM_BASE_URL` và `KNOWHOW_INFERENCE_URL` cùng
+là `<URL>/v1`, cùng một token). Đó là host public, nên client coi là **cloud**.
+
+## 7. Số liệu đo (RTX A5000 24 GB, 28/9/2026)
 
 | Thông số | Giá trị |
 |---|---|
@@ -125,7 +261,7 @@ của repo mẹ). Token được truyền cho vLLM qua biến `VLLM_API_KEY`, kh
 | 48 khung (trần spec 04) | 5.5k token vào, 2.9–3.8 s |
 | 8 khung | 1.0k token vào, 1.6 s (lần gọi đầu với schema mới mất 10–12 s để biên dịch grammar JSON) |
 
-## 6. Tinh chỉnh chất lượng (ghi nhận khi thử video thật)
+## 8. Tinh chỉnh chất lượng (ghi nhận khi thử video thật)
 
 - Không dùng `temperature=0` cho danh sách bước dài: decode greedy làm model lặp vòng. Nên dùng
   `presence_penalty=1.5` với `temperature` từ 0.2 trở lên, đặt phía client:
@@ -133,7 +269,7 @@ của repo mẹ). Token được truyền cho vLLM qua biến `VLLM_API_KEY`, kh
 - Với prompt "chỉ liệt kê bước" (không cho mô tả trước), model trả `{"steps": []}` cho mọi đoạn.
   Prompt lượt A hiện yêu cầu mô tả `scene` trước rồi mới liệt kê `steps` (spec 04 v1.5).
 
-## 7. Sự cố thường gặp
+## 9. Sự cố thường gặp
 
 | Triệu chứng | Cách xử lý |
 |---|---|
@@ -143,9 +279,16 @@ của repo mẹ). Token được truyền cho vLLM qua biến `VLLM_API_KEY`, kh
 | Engine chết ở `init_device` (CUDA) | torch không phải bản cu126; chạy lại `uv sync` |
 | `HTTP 400 At most 64 image(s) may be provided in one prompt.` | Giữ `KNOWHOW_VLM_MAX_FRAMES` ≤ 64 |
 | ROCm: `Không đọc được danh sách GPU AMD` | Đặt `VLM_SERVER_GPU=<index>` |
+| Gateway trả 503 `... is not installed` | Chạy gateway bằng venv CPU đã cài `requirements-gateway.txt` |
+| Gateway trả 502 `VLM upstream ... unreachable` | vLLM chưa chạy hoặc sai `INFERENCE_VLM_UPSTREAM`; xem `/var/log/portal/vllm.log` |
+| Lần gọi đầu `/v1/embeddings` hoặc `/v1/audio/transcriptions` chậm | Model đang nạp (hoặc đang tải nếu chưa có trong `HF_HOME`); các lần sau nhanh |
 
-## 8. Test
+## 10. Test
+
+Không cần GPU, cũng không cần torch, faster-whisper hay docling: gateway được test bằng engine giả
+(`tests/gateway/`), proxy bằng `httpx.MockTransport`. Nhóm `dev` chỉ chứa thư viện nhẹ:
 
 ```bash
-uv run pytest     # không cần GPU: parser nvidia/amd, chọn 1 GPU, lệnh + env CUDA/ROCm
+uv run --only-group dev python -m pytest     # parser nvidia/amd, chọn 1 GPU, lệnh CUDA/ROCm, gateway
+uv run --only-group dev ruff check . && uv run --only-group dev ruff format --check .
 ```

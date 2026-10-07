@@ -1,7 +1,7 @@
 [project]
-name = "vlm-server"
+name = "mentormind-inference"
 version = "0.1.0"
-description = "Self-hosted OpenAI-compatible VLM server (vLLM + Qwen3-VL-8B-Instruct) on exactly one GPU — CUDA via uv, ROCm (MI250) via Docker."
+description = "MentorMind inference server: Qwen3-VL-8B-Instruct on one GPU (vLLM, or Ollama) plus a CPU gateway (faster-whisper ASR, bge-m3 embeddings, Docling) that proxies the VLM, so one URL serves everything."
 requires-python = ">=3.11,<3.13"
 # Driver on the dev box is CUDA 12.6 (no root to upgrade it). vLLM 0.16.0 is the newest release
 # whose torch (2.9.1) still ships a cu126 build; 0.17+ moves to torch 2.10+ / cu128+ only.

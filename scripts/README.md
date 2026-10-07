@@ -9,7 +9,7 @@ Một lệnh, chạy được trên **macOS** (Apple Silicon hoặc Intel) và *
 
 ## Chạy
 ```bash
-cd 3rdparty/vlm_server            # hoặc thư mục clone vlm-engine
+cd 3rdparty/vlm_server            # hoặc thư mục clone mentormind-inference
 bash scripts/serve-ollama.sh      # serve tại http://127.0.0.1:11434
 ```
 Lần đầu chạy, script tải Ollama 0.35.1 (macOS khoảng 150 MB, Linux khoảng 1,4 GB) và model `qwen3-vl:8b` (6 GB). Những lần sau chỉ mất vài giây.
