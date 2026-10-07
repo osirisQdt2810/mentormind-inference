@@ -164,7 +164,7 @@ sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "$VLLM_INSTALL" "vLLM (~5 phút lầ
 # 4. VLM weights (17 GB, once)
 if ! ls "$HF_HOME"/hub/models--${MODEL//\//--}/snapshots/*/config.json >/dev/null 2>&1; then
   log "Tải $MODEL (~17 GB)…"
-  /venv/main/bin/hf download "$MODEL"
+  "$VENV/bin/hf" download "$MODEL"   # huggingface_hub comes with vLLM: no need for the template venv
 fi
 
 # 5. CPU venv of the gateway: when missing or when its requirements change
@@ -245,7 +245,7 @@ stdout_logfile_backups=0
 EOF
 done
 # The public port goes to the gateway, which proxies the VLM (older instances pointed it at vLLM).
-PORTAL_CHANGED=$(/venv/main/bin/python - <<EOF
+PORTAL_CHANGED=$("$VENV/bin/python" - <<EOF   # pyyaml comes with vLLM
 import yaml
 path = "/etc/portal.yaml"
 with open(path) as f:
@@ -323,7 +323,7 @@ else
   URL=$(curl -s "http://localhost:11111/get-existing-quick-tunnel/$TARGET_ENC" | tr -d '"')
   case "$URL" in https://*) ;; *)
     URL=$(curl -s -X POST "http://localhost:11111/start-quick-tunnel/$TARGET_ENC" \
-          | /venv/main/bin/python -c "import json,sys; print(json.load(sys.stdin)['tunnel_url'])") ;;
+          | "$VENV/bin/python" -c "import json,sys; print(json.load(sys.stdin)['tunnel_url'])") ;;
   esac
 fi
 
