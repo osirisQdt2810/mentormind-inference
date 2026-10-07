@@ -15,6 +15,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
+from vlm_server.gateway.deps import install_hint
 from vlm_server.gateway.errors import EngineUnavailable
 
 DEFAULT_MODEL = "BAAI/bge-m3"
@@ -68,9 +69,7 @@ def load_forward(model_name: str) -> Forward:
         import torch
         import transformers
     except ImportError as exc:
-        raise EngineUnavailable(
-            "torch/transformers are not installed: pip install -r requirements-gateway.txt"
-        ) from exc
+        raise EngineUnavailable(f"torch/transformers are not installed: {install_hint()}") from exc
     try:
         tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
         model = transformers.AutoModel.from_pretrained(model_name).eval()

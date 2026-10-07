@@ -1,8 +1,8 @@
 """``python -m vlm_server gateway``: the CPU gateway (ASR, embeddings, documents + VLM proxy).
 
 Listens on INFERENCE_HOST:INFERENCE_PORT (default 127.0.0.1:18080) and forwards other /v1/* paths
-to INFERENCE_VLM_UPSTREAM (default http://127.0.0.1:18000). Runs from the CPU venv of
-requirements-gateway.txt; models load on their first request.
+to INFERENCE_VLM_UPSTREAM (default http://127.0.0.1:18000). Runs from the venv of the platform's
+requirements/gateway-*.txt (CPU flavour by default); models load on their first request.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 
 from vlm_server.gateway.config import GatewayConfig
+from vlm_server.gateway.deps import install_hint
 
 
 def main(args: list[str] | None = None) -> None:
@@ -20,9 +21,7 @@ def main(args: list[str] | None = None) -> None:
     try:
         import uvicorn
     except ImportError as exc:
-        raise SystemExit(
-            "uvicorn is not installed: pip install -r requirements-gateway.txt"
-        ) from exc
+        raise SystemExit(f"uvicorn is not installed: {install_hint()}") from exc
     from vlm_server.gateway.app import create_app
 
     print(

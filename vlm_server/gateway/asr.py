@@ -16,6 +16,7 @@ from typing import Any, Protocol
 from pydantic import BaseModel
 
 from vlm_server.gateway.config import GatewayConfig
+from vlm_server.gateway.deps import install_hint
 from vlm_server.gateway.errors import BadRequest, EngineUnavailable
 
 
@@ -60,9 +61,7 @@ def load_whisper(model: str, device: str, compute_type: str) -> Any:
     try:
         from faster_whisper import WhisperModel
     except ImportError as exc:
-        raise EngineUnavailable(
-            "faster-whisper is not installed: pip install -r requirements-gateway.txt"
-        ) from exc
+        raise EngineUnavailable(f"faster-whisper is not installed: {install_hint()}") from exc
     try:
         return WhisperModel(model, device=device, compute_type=compute_type)
     except (OSError, RuntimeError, ValueError) as exc:

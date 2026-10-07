@@ -11,13 +11,20 @@
 # mentormind-inference itself). Safe to run again: it installs/creates only what is missing and
 # restarts a service only when its generated script changed or it is not RUNNING. Prints the
 # .env lines for the team at the end.
+#
+# Libraries come from the clone's requirements/*.txt, chosen by scripts/lib/platform.sh and logged
+# as "Gateway deps: …" / "vLLM deps: …". On this box (Linux + CUDA):
+#   /opt/vllm           requirements/vllm-linux-cuda.txt    uv pip install … --torch-backend=auto
+#   /opt/inference-cpu  requirements/gateway-linux-cpu.txt  uv pip install … --torch-backend=cpu
+# The gateway gets the CPU file although the box has CUDA: it runs on CPU by design, the GPU is
+# vLLM's. GATEWAY_REQUIREMENTS / VLLM_REQUIREMENTS (paths relative to the clone) override.
 set -euo pipefail
 
 main() { # parsed whole before it runs: updating the clone cannot change the script mid-run
 
 MODEL="Qwen/Qwen3-VL-8B-Instruct"
-VENV=/opt/vllm                     # vLLM (GPU)
-CPU_VENV=/opt/inference-cpu        # gateway (CPU): requirements-gateway.txt, torch CPU build
+VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt
+CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, default requirements/gateway-linux-cpu.txt
 ENGINE=/opt/mentormind-inference   # this repo: vLLM launcher + gateway
 ENGINE_REPO=https://github.com/osirisQdt2810/mentormind-inference.git
 ENGINE_REF=${ENGINE_REF:-main}     # branch, tag or commit; pin a commit for identical instances
@@ -37,7 +44,10 @@ TARGET_ENC="http%3A%2F%2Flocalhost%3A${EXTERNAL_PORT}"
 SCRIPTS=/opt/supervisor-scripts
 ENV_OUT=/root/mentormind-inference.env
 
-set -a; . /etc/environment; set +a
+set -a
+# shellcheck disable=SC1091 # the instance's environment (OPEN_BUTTON_TOKEN, …)
+. /etc/environment
+set +a
 export HF_HOME="${HF_HOME:-/workspace/.hf_home}"
 DOCLING_MODELS="$HF_HOME/docling-models"   # docling-tools models download -> DOCLING_ARTIFACTS_PATH
 log() { printf '\033[1;36m[run.sh]\033[0m %s\n' "$*"; }
@@ -60,20 +70,33 @@ ensure_running() {
   fi
 }
 
-# 1. vLLM (once per instance; kept across Stop/Start)
-if [ ! -x "$VENV/bin/vllm" ]; then
-  log "Cài vLLM vào $VENV (~5 phút)…"
-  uv venv "$VENV" --python 3.12 -q
-  uv pip install --python "$VENV/bin/python" vllm --torch-backend=auto
-fi
+# Venv $1 gets requirements file $2 (hash $3) with the uv flags that file needs; $4 = what to log.
+# Installs when the venv is missing or the file, a file it includes (-r) or the flags changed; the
+# stamp $1/.requirements holds "<file> <flags>" and the hash. Another file or other flags (another
+# platform flavour) rebuild the venv: uv pip install keeps an installed torch that still satisfies
+# the new file, so a CPU torch would survive a switch to CUDA.
+sync_venv() {
+  local venv=$1 reqs=$2 hash=$3 what=$4 flags flavour have
+  flags=$(uv_flags_for "$reqs")
+  flavour="$(rel "$reqs")${flags:+ $flags}"
+  have=$(cat "$venv/.requirements" 2>/dev/null || true)
+  if [ -x "$venv/bin/python" ] && [ "$have" = "$flavour"$'\n'"$hash" ]; then return 0; fi
+  if [ -n "$have" ] && [ "${have%%$'\n'*}" != "$flavour" ]; then
+    log "Đổi thư viện của $venv (${have%%$'\n'*} → $flavour): tạo lại venv."
+    rm -rf "$venv"
+  fi
+  log "Cài $what vào $venv: $(rel "$reqs")…"
+  [ -x "$venv/bin/python" ] || uv venv "$venv" --python 3.12 -q
+  # shellcheck disable=SC2086 # $flags: zero or more words
+  uv pip install --python "$venv/bin/python" -q -r "$reqs" $flags
+  printf '%s\n%s\n' "$flavour" "$hash" > "$venv/.requirements"
+  rm -f "$venv/.requirements.sha256"   # stamp of the single requirements-gateway.txt era
+}
 
-# 2. VLM weights (17 GB, once)
-if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.json >/dev/null 2>&1; then
-  log "Tải $MODEL (~17 GB)…"
-  /venv/main/bin/hf download "$MODEL"
-fi
+# A requirements path as written in the clone (requirements/…), or absolute when outside it.
+rel() { printf '%s\n' "${1#"$ENGINE"/}"; }
 
-# 3. mentormind-inference at ENGINE_REF (vLLM launcher + gateway)
+# 1. mentormind-inference at ENGINE_REF (vLLM launcher + gateway + requirements/)
 if [ ! -d "$ENGINE/.git" ]; then
   log "Tải mentormind-inference ($ENGINE_REPO @ $ENGINE_REF)…"
   rm -rf "$ENGINE"
@@ -88,22 +111,47 @@ else
 fi
 ENGINE_COMMIT=$(git -C "$ENGINE" rev-parse --short HEAD)
 log "mentormind-inference @ $ENGINE_COMMIT ($ENGINE_REF)"
-"$VENV/bin/python" -c "import pydantic_settings, httpx, PIL" 2>/dev/null \
-  || uv pip install --python "$VENV/bin/python" -q "pydantic-settings>=2.3" "httpx>=0.27" "pillow>=10"
 
-# 4. CPU venv of the gateway: (re)installed when missing or when requirements-gateway.txt changed
-REQS="$ENGINE/requirements-gateway.txt"
-REQS_HASH=$(sha256sum "$REQS" | cut -d' ' -f1)
-if [ ! -x "$CPU_VENV/bin/python" ] || [ "$(cat "$CPU_VENV/.requirements.sha256" 2>/dev/null)" != "$REQS_HASH" ]; then
-  log "Cài môi trường CPU cho gateway vào $CPU_VENV (faster-whisper, transformers, docling; ~5 phút)…"
-  [ -x "$CPU_VENV/bin/python" ] || uv venv "$CPU_VENV" --python 3.12 -q
-  uv pip install --python "$CPU_VENV/bin/python" -q -r "$REQS" --torch-backend=cpu
-  echo "$REQS_HASH" > "$CPU_VENV/.requirements.sha256"
+# 2. Platform -> requirements files (the mapping lives in the clone: scripts/lib/platform.sh)
+if [ ! -f "$ENGINE/scripts/lib/platform.sh" ]; then
+  log "ENGINE_REF=$ENGINE_REF chưa có requirements/ và scripts/lib/platform.sh: dùng một bản mới hơn."
+  exit 1
+fi
+# shellcheck source=SCRIPTDIR/../lib/platform.sh
+. "$ENGINE/scripts/lib/platform.sh"
+detect_platform
+log "Nền tảng: $PLATFORM_OS $PLATFORM_ARCH, accelerator $PLATFORM_ACCEL."
+# The gateway runs on CPU by design, even on this CUDA box (the GPU is vLLM's): the default is
+# the CPU flavour of the OS (gateway-linux-cpu.txt on Linux), whatever PLATFORM_ACCEL says.
+GW_FROM=${GATEWAY_REQUIREMENTS:+ [GATEWAY_REQUIREMENTS]}
+VLLM_FROM=${VLLM_REQUIREMENTS:+ [VLLM_REQUIREMENTS]}
+GATEWAY_REQUIREMENTS=${GATEWAY_REQUIREMENTS:-$(default_gateway_requirements)}
+if [ -z "${VLLM_REQUIREMENTS:-}" ]; then
+  VLLM_REQUIREMENTS=$(default_vllm_requirements) \
+    || { log "Không có bộ thư viện vLLM cho $PLATFORM_OS/$PLATFORM_ACCEL: run.sh cần máy NVIDIA (hoặc đặt VLLM_REQUIREMENTS)."; exit 1; }
+fi
+case "$GATEWAY_REQUIREMENTS" in /*) GW_REQS=$GATEWAY_REQUIREMENTS ;; *) GW_REQS="$ENGINE/$GATEWAY_REQUIREMENTS" ;; esac
+case "$VLLM_REQUIREMENTS" in /*) VLLM_REQS=$VLLM_REQUIREMENTS ;; *) VLLM_REQS="$ENGINE/$VLLM_REQUIREMENTS" ;; esac
+GW_HASH=$(requirements_hash "$GW_REQS")       # the file and every file it includes (-r)
+VLLM_HASH=$(requirements_hash "$VLLM_REQS")
+log "vLLM deps: $(rel "$VLLM_REQS")$VLLM_FROM ($(install_command "$VENV" "$(rel "$VLLM_REQS")"))"
+log "Gateway deps: $(rel "$GW_REQS")$GW_FROM ($(install_command "$CPU_VENV" "$(rel "$GW_REQS")"))"
+
+# 3. vLLM venv: once per instance (kept across Stop/Start), again when its requirements change
+sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "vLLM (~5 phút lần đầu)"
+
+# 4. VLM weights (17 GB, once)
+if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.json >/dev/null 2>&1; then
+  log "Tải $MODEL (~17 GB)…"
+  /venv/main/bin/hf download "$MODEL"
 fi
 
-# 5. CPU models, once per model set and requirements: Whisper, bge-m3, Docling (layout, tables, OCR)
+# 5. CPU venv of the gateway: when missing or when its requirements change
+sync_venv "$CPU_VENV" "$GW_REQS" "$GW_HASH" "môi trường CPU cho gateway (faster-whisper, transformers, docling; ~5 phút)"
+
+# 6. CPU models, once per model set and requirements: Whisper, bge-m3, Docling (layout, tables, OCR)
 MODELS_MARK="$HF_HOME/.mentormind-inference-models"
-MODELS_WANT="asr=$ASR_MODEL embed=$EMBED_MODEL docling=$DOCLING_MODELS reqs=$REQS_HASH"
+MODELS_WANT="asr=$ASR_MODEL embed=$EMBED_MODEL docling=$DOCLING_MODELS reqs=$GW_HASH"
 if [ "$(cat "$MODELS_MARK" 2>/dev/null)" != "$MODELS_WANT" ]; then
   log "Tải model CPU: faster-whisper $ASR_MODEL, $EMBED_MODEL (~2.3 GB), Docling…"
   "$CPU_VENV/bin/python" -c 'import sys; from faster_whisper import download_model; download_model(sys.argv[1])' "$ASR_MODEL"
@@ -112,10 +160,12 @@ if [ "$(cat "$MODELS_MARK" 2>/dev/null)" != "$MODELS_WANT" ]; then
   echo "$MODELS_WANT" > "$MODELS_MARK"
 fi
 
-# 6. Supervisor services + Caddy entry
+# 7. Supervisor services + Caddy entry
 EXTRA_ARGS='["--kv-cache-dtype","'$KV_CACHE_DTYPE'","--cpu-offload-gb","'$CPU_OFFLOAD_GB'","--mm-processor-kwargs","{\"min_pixels\":'$MIN_PIXELS',\"max_pixels\":'$MIN_PIXELS'}"]'
+# The requirements hash is part of each script: new libraries restart the service that uses them.
 write_if_changed "$SCRIPTS/vllm.sh" <<EOF
 #!/bin/bash
+# vLLM deps $(rel "$VLLM_REQS") $VLLM_HASH
 utils=/opt/supervisor-scripts/utils
 . "\${utils}/logging.sh"
 . "\${utils}/environment.sh"
@@ -133,11 +183,11 @@ pty $VENV/bin/python -m vlm_server serve 2>&1
 EOF
 chmod +x "$SCRIPTS/vllm.sh"
 VLLM_CHANGED=$CHANGED
-# The commit and the requirements hash are part of the gateway script: new code or new libraries
-# restart the gateway (seconds), never vLLM (minutes).
+# The commit is part of the gateway script only: new code restarts the gateway (seconds), never
+# vLLM (minutes).
 write_if_changed "$SCRIPTS/gateway.sh" <<EOF
 #!/bin/bash
-# mentormind-inference @ $ENGINE_COMMIT, requirements-gateway.txt $REQS_HASH
+# mentormind-inference @ $ENGINE_COMMIT, gateway deps $(rel "$GW_REQS") $GW_HASH
 utils=/opt/supervisor-scripts/utils
 . "\${utils}/logging.sh"
 . "\${utils}/environment.sh"
@@ -199,7 +249,7 @@ supervisorctl reread >/dev/null && supervisorctl update >/dev/null
 ensure_running vllm "$VLLM_CHANGED"
 ensure_running gateway "$GATEWAY_CHANGED"
 
-# 7. Wait for both services (vLLM: 2-3 min after a Start)
+# 8. Wait for both services (vLLM: 2-3 min after a Start)
 log "Chờ vLLM nạp model…"
 for _ in $(seq 1 90); do
   curl -sf -m 3 "http://127.0.0.1:$VLLM_PORT/v1/models" >/dev/null && break
@@ -218,7 +268,7 @@ curl -sf -m 10 "http://127.0.0.1:$GATEWAY_PORT/v1/models" >/dev/null \
   || { log "Gateway không chạy hoặc không tới được vLLM. Log: tail -50 /var/log/portal/gateway.log"; exit 1; }
 log "Gateway sẵn sàng (ASR, embeddings, documents; phần /v1 còn lại → vLLM)."
 
-# 8. Public HTTPS URL to the Caddy port (token auth stays on).
+# 9. Public HTTPS URL to the Caddy port (token auth stays on).
 #    ngrok static domain when this box has an ngrok authtoken (fixed URL across Stop/Start);
 #    otherwise a Cloudflare quick tunnel (new URL after every Start).
 if ngrok config check >/dev/null 2>&1 && grep -q "authtoken:" /root/.config/ngrok/ngrok.yml 2>/dev/null; then
@@ -255,7 +305,7 @@ else
   esac
 fi
 
-# 9. Self-test through the public URL: the VLM (proxied) and the embeddings (CPU)
+# 10. Self-test through the public URL: the VLM (proxied) and the embeddings (CPU)
 AUTH="Authorization: Bearer $OPEN_BUTTON_TOKEN"
 log "Chờ URL public $URL…"
 code=000
@@ -272,7 +322,7 @@ DIM=$(curl -s -m 600 -H "$AUTH" -H "Content-Type: application/json" -d '{"input"
 [ "$DIM" = 1024 ] || { log "Embeddings lỗi (số chiều: '$DIM'). Log: tail -50 /var/log/portal/gateway.log"; exit 1; }
 log "POST $URL/v1/embeddings: vector $DIM chiều."
 
-# 10. What the team needs
+# 11. What the team needs
 cat > "$ENV_OUT" <<EOF
 KNOWHOW_VLM_BASE_URL=$URL/v1
 KNOWHOW_VLM_MODEL=$MODEL

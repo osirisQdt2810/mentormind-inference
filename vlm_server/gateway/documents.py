@@ -14,6 +14,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from vlm_server.gateway.deps import install_hint
 from vlm_server.gateway.errors import ConversionFailed, EngineUnavailable
 
 #: What the endpoint converts (MentorMind's Docling extractor takes the same four). Docling itself
@@ -39,9 +40,7 @@ def load_converter() -> Any:
     try:
         from docling.document_converter import DocumentConverter
     except ImportError as exc:
-        raise EngineUnavailable(
-            "docling is not installed: pip install -r requirements-gateway.txt"
-        ) from exc
+        raise EngineUnavailable(f"docling is not installed: {install_hint()}") from exc
     return DocumentConverter()
 
 

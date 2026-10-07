@@ -34,8 +34,8 @@ VLM có hai backend (`VLM_SERVER_BACKEND`):
 | `vlm_server/gpu/` | Phát hiện nền tảng và chọn đúng 1 GPU: `nvidia.py` (nvidia-smi), `rocm.py` (amd-smi/rocm-smi), `select.py` |
 | `vlm_server/serve/` | `ollama.py` dựng lệnh `scripts/serve-ollama.sh`; `command.py` dựng lệnh và biến môi trường vLLM theo nền tảng; `launch.py` chạy backend đã chọn |
 | `vlm_server/gateway/` | Gateway CPU: `config.py` (`INFERENCE_*`), `app.py` (`create_app`), `asr.py`, `embeddings.py`, `documents.py` (engine nạp thư viện nặng khi cần), `proxy.py` (proxy sang VLM), `cli.py` (`python -m vlm_server gateway`) |
-| `requirements-gateway.txt` | Thư viện của venv CPU chạy gateway (torch bản CPU) |
-| `scripts/` | `serve-ollama.sh` (macOS và Linux, một lệnh), `ollama/llama-server-wrapper.sh`, `README.md` hướng dẫn; `vast/run.sh` deploy lên Vast.ai (`run.sh` ở gốc repo gọi lại script này) |
+| `requirements/` | Thư viện theo nền tảng: gateway (`gateway-common.txt` + một file cho mỗi nền tảng) và venv vLLM trên máy CUDA mới (`vllm-linux-cuda.txt`), xem mục 1 |
+| `scripts/` | `serve-ollama.sh` (macOS và Linux, một lệnh), `ollama/llama-server-wrapper.sh`, `README.md` hướng dẫn; `vast/run.sh` deploy lên Vast.ai (`run.sh` ở gốc repo gọi lại script này); `lib/platform.sh` nhận diện nền tảng và chọn file `requirements/` |
 | `vlm_server/tools/smoke.py` | Kiểm tra một server VLM đang chạy |
 | `docker-compose.yml`, `docker/` | Chạy VLM riêng (không cần repo chính): image CUDA và ROCm, override CDI `docker/docker-compose.cdi.yml`; container giữ sẵn môi trường, server bật khi cần |
 
@@ -92,19 +92,57 @@ Chi tiết cần giữ đúng:
 
 Docling đọc thêm biến của chính nó, ví dụ `DOCLING_ARTIFACTS_PATH` (thư mục model đã tải sẵn, xem mục 2).
 
+### Thư viện theo nền tảng (`requirements/`)
+
+Mỗi nền tảng có file requirements riêng. Phần chung nằm trong `gateway-common.txt`; mỗi file `gateway-<nền tảng>.txt`
+nạp nó bằng `-r gateway-common.txt` rồi thêm đúng bản torch của nền tảng đó. Đầu mỗi file ghi nền tảng, lệnh cài
+chính xác và đã kiểm tra tới đâu.
+
+| File | Dùng ở đâu | Cờ `uv pip install` | Đã kiểm tra |
+|---|---|---|---|
+| `gateway-common.txt` | Phần chung (FastAPI, faster-whisper, PyAV `<19`, Docling, transformers). Không cài riêng | | Qua `gateway-linux-cpu.txt` |
+| `gateway-linux-cpu.txt` | Gateway trên Linux, chạy CPU. **Mặc định trên mọi máy Linux, kể cả máy Vast có GPU**: gateway chạy CPU theo thiết kế, GPU để cho vLLM | `--torch-backend=cpu` | Có, bản deploy Vast.ai |
+| `gateway-macos.txt` | Gateway trên Mac Apple silicon (Docling dùng MPS, phần còn lại chạy CPU) | không cần | Chỉ resolve (`uv pip compile`) |
+| `gateway-linux-cuda.txt` | Linux + NVIDIA, chỉ khi muốn Docling chạy trên GPU (tự chọn) | `--torch-backend=auto` | Chỉ resolve |
+| `gateway-linux-rocm.txt` | Linux + AMD (ROCm), chỉ khi muốn Docling chạy trên GPU (tự chọn); torch lấy bản ROCm | `--torch-backend=auto` (hoặc `rocm6.4`…) | Chưa: chỉ resolve |
+| `vllm-linux-cuda.txt` | venv vLLM trên máy Linux + NVIDIA mới (Vast): vLLM và thư viện của launcher | `--torch-backend=auto` | Có, bản deploy Vast.ai |
+
+Không chắc máy mình dùng file nào thì chạy `bash scripts/lib/platform.sh`: script in ra nền tảng (OS, kiến trúc,
+GPU) cùng file và lệnh cài cho gateway và vLLM. Máy dev CUDA 12.6 vẫn cài vLLM bằng `uv sync` (mục 3); ROCm lấy
+vLLM từ image của AMD (mục 5); macOS chạy VLM bằng Ollama.
+
 ### Chạy tại chỗ
 
-Gateway dùng venv riêng với torch bản CPU, tách khỏi venv vLLM:
+Gateway dùng venv riêng, tách khỏi venv vLLM. Linux (CPU, kể cả máy có GPU):
 
 ```bash
 uv venv .venv-gateway --python 3.12
-uv pip install --python .venv-gateway/bin/python -r requirements-gateway.txt --torch-backend=cpu
+uv pip install --python .venv-gateway/bin/python -r requirements/gateway-linux-cpu.txt --torch-backend=cpu
 INFERENCE_VLM_UPSTREAM=http://127.0.0.1:8100 .venv-gateway/bin/python -m vlm_server gateway
 curl -s http://127.0.0.1:18080/health
 curl -s http://127.0.0.1:18080/v1/embeddings -H 'Content-Type: application/json' -d '{"input": "xin chào"}'
 curl -s http://127.0.0.1:18080/v1/audio/transcriptions -F file=@clip.wav -F language=th
 curl -s http://127.0.0.1:18080/v1/documents/convert -F file=@sop.pdf
 ```
+
+Các nền tảng khác chỉ khác bước `uv pip install` (venv tạo như trên):
+
+```bash
+# macOS Apple silicon: torch mặc định của PyPI (có MPS)
+uv pip install --python .venv-gateway/bin/python -r requirements/gateway-macos.txt
+# Linux + NVIDIA, Docling trên GPU: uv chọn index CUDA hợp với driver
+uv pip install --python .venv-gateway/bin/python -r requirements/gateway-linux-cuda.txt --torch-backend=auto
+# Linux + AMD (ROCm), Docling trên GPU: uv đọc GPU qua rocm_agent_enumerator; không được thì ghi rõ
+# bản ROCm của máy (cat /opt/rocm/.info/version), ví dụ --torch-backend=rocm6.4
+uv pip install --python .venv-gateway/bin/python -r requirements/gateway-linux-rocm.txt --torch-backend=auto
+# ROCm bên trong image vLLM của AMD (torch ROCm có sẵn): khóa đúng bản torch đó để uv không tải bản khác
+python3 -c "import torch; print('torch==' + torch.__version__)" > /tmp/rocm-torch.txt
+uv pip install --system -r requirements/gateway-linux-rocm.txt -c /tmp/rocm-torch.txt
+```
+
+Bản CUDA và ROCm chỉ đưa model của Docling lên GPU: bge-m3 luôn chạy CPU, ASR chạy CPU trừ khi đặt
+`INFERENCE_ASR_DEVICE=cuda` (CTranslate2 không có bản ROCm). **Bản macOS, CUDA và ROCm mới được resolve bằng
+`uv pip compile`, chưa cài và chạy thật**; chỉ `gateway-linux-cpu.txt` đã chạy trên Vast.
 
 Lần gọi đầu mỗi endpoint sẽ tải model vào cache Hugging Face (`HF_HOME`): Whisper small khoảng 0,5 GB,
 bge-m3 khoảng 2,3 GB, model của Docling khoảng 0,7 GB trở lên.
@@ -122,20 +160,36 @@ bash run.sh
 
 Các bước:
 
-1. Cài vLLM vào `/opt/vllm` (một lần) và tải `Qwen/Qwen3-VL-8B-Instruct` (17 GB, một lần).
-2. Clone hoặc cập nhật repo vào `/opt/mentormind-inference` theo `ENGINE_REF` (mặc định `main`; đặt một commit để mọi instance chạy cùng một bản).
-3. Tạo venv CPU `/opt/inference-cpu`: `uv venv` rồi `uv pip install -r requirements-gateway.txt --torch-backend=cpu`.
-   Chỉ cài lại khi venv chưa có hoặc `requirements-gateway.txt` đổi (lưu hash trong `/opt/inference-cpu/.requirements.sha256`).
-4. Tải sẵn model CPU vào `HF_HOME` một lần: `Systran/faster-whisper-small`, `BAAI/bge-m3`, và model của Docling
+1. Clone hoặc cập nhật repo vào `/opt/mentormind-inference` theo `ENGINE_REF` (mặc định `main`; đặt một commit để mọi instance chạy cùng một bản).
+   `ENGINE_REF` phải là bản đã có `requirements/` và `scripts/lib/platform.sh`.
+2. Nhận diện nền tảng bằng `scripts/lib/platform.sh` của bản clone (`uname -s`, `uname -m`; `nvidia-smi` chạy được → `cuda`,
+   có `amd-smi`/`rocm-smi` → `rocm`, còn lại `cpu`) rồi chọn file requirements. Log cho biết file nào và lệnh nào:
+
+   ```
+   [run.sh] Nền tảng: Linux x86_64, accelerator cuda.
+   [run.sh] vLLM deps: requirements/vllm-linux-cuda.txt (uv pip install --python /opt/vllm/bin/python -r requirements/vllm-linux-cuda.txt --torch-backend=auto)
+   [run.sh] Gateway deps: requirements/gateway-linux-cpu.txt (uv pip install --python /opt/inference-cpu/bin/python -r requirements/gateway-linux-cpu.txt --torch-backend=cpu)
+   ```
+
+   Gateway nhận `gateway-linux-cpu.txt` **dù máy có CUDA**: gateway chạy CPU theo thiết kế, GPU dành cho vLLM.
+   Đổi bằng `GATEWAY_REQUIREMENTS` / `VLLM_REQUIREMENTS` (đường dẫn tính từ gốc repo); log thêm `[GATEWAY_REQUIREMENTS]`
+   khi file đến từ biến này. Máy không có NVIDIA thì script dừng (vLLM ROCm lấy từ image của AMD, không qua script này).
+3. Venv vLLM `/opt/vllm`: `uv venv` rồi `uv pip install -r requirements/vllm-linux-cuda.txt --torch-backend=auto`.
+   Tải `Qwen/Qwen3-VL-8B-Instruct` (17 GB, một lần).
+4. Venv CPU của gateway `/opt/inference-cpu`: `uv pip install -r requirements/gateway-linux-cpu.txt --torch-backend=cpu`.
+   Mỗi venv chỉ cài lại khi chưa có, hoặc khi file requirements **hay file nó nạp bằng `-r`** (`gateway-common.txt`) đổi:
+   hash của cả hai lưu trong `<venv>/.requirements` cùng tên file và cờ uv. Đổi sang file hoặc cờ khác (một nền tảng
+   khác) thì venv được tạo lại từ đầu, vì `uv pip install` giữ nguyên bản torch đã cài nếu nó vẫn thỏa yêu cầu.
+5. Tải sẵn model CPU vào `HF_HOME` một lần: `Systran/faster-whisper-small`, `BAAI/bge-m3`, và model của Docling
    (`docling-tools models download` vào `$HF_HOME/docling-models`, gateway đọc qua `DOCLING_ARTIFACTS_PATH`).
-5. Hai service supervisor: `vllm` (`python -m vlm_server serve`, `127.0.0.1:18000`) và `gateway`
+6. Hai service supervisor: `vllm` (`python -m vlm_server serve`, `127.0.0.1:18000`) và `gateway`
    (`python -m vlm_server gateway` từ venv CPU, `127.0.0.1:18080`, `INFERENCE_VLM_UPSTREAM=http://127.0.0.1:18000`).
    Mục portal `vLLM` của Caddy trỏ cổng ngoài **10100 → 18080** (gateway). Một service chỉ được khởi động lại khi
-   script sinh ra cho nó thay đổi hoặc nó không ở trạng thái RUNNING. Script của gateway ghi kèm commit và hash
-   requirements, nên code mới chỉ khởi động lại gateway (vài giây), không đụng vLLM (vài phút).
-6. Mở URL public: domain tĩnh ngrok nếu máy có authtoken ngrok, nếu không thì Cloudflare quick tunnel (URL đổi sau mỗi lần Start).
-7. Tự kiểm tra qua URL public: `GET /v1/models` (200 khi có token) và `POST /v1/embeddings` với `"xin chào"` (vector 1024 chiều).
-8. In ra các dòng `.env` cho client MentorMind (lưu ở `/root/mentormind-inference.env`):
+   script sinh ra cho nó thay đổi hoặc nó không ở trạng thái RUNNING. Script của mỗi service ghi kèm hash requirements
+   của nó, script gateway ghi thêm commit: code mới chỉ khởi động lại gateway (vài giây), không đụng vLLM (vài phút).
+7. Mở URL public: domain tĩnh ngrok nếu máy có authtoken ngrok, nếu không thì Cloudflare quick tunnel (URL đổi sau mỗi lần Start).
+8. Tự kiểm tra qua URL public: `GET /v1/models` (200 khi có token) và `POST /v1/embeddings` với `"xin chào"` (vector 1024 chiều).
+9. In ra các dòng `.env` cho client MentorMind (lưu ở `/root/mentormind-inference.env`):
 
 ```
 KNOWHOW_VLM_BASE_URL=https://<domain>/v1
@@ -157,6 +211,8 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
 | `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |
 | `ASR_MODEL` / `EMBED_MODEL` | `small` / `BAAI/bge-m3` | Model của gateway |
+| `GATEWAY_REQUIREMENTS` | `requirements/gateway-linux-cpu.txt` (Linux) | File requirements của venv gateway; cờ uv đi theo file |
+| `VLLM_REQUIREMENTS` | `requirements/vllm-linux-cuda.txt` (Linux + NVIDIA) | File requirements của venv vLLM |
 
 Log: `/var/log/portal/vllm.log`, `/var/log/portal/gateway.log`, `/var/log/portal/ngrok.log`.
 
@@ -279,7 +335,7 @@ là `<URL>/v1`, cùng một token). Đó là host public, nên client coi là **
 | Engine chết ở `init_device` (CUDA) | torch không phải bản cu126; chạy lại `uv sync` |
 | `HTTP 400 At most 64 image(s) may be provided in one prompt.` | Giữ `KNOWHOW_VLM_MAX_FRAMES` ≤ 64 |
 | ROCm: `Không đọc được danh sách GPU AMD` | Đặt `VLM_SERVER_GPU=<index>` |
-| Gateway trả 503 `... is not installed` | Chạy gateway bằng venv CPU đã cài `requirements-gateway.txt` |
+| Gateway trả 503 `... is not installed` | Chạy gateway bằng venv đã cài file `requirements/gateway-*.txt` của nền tảng; thông báo lỗi in sẵn lệnh cài |
 | Gateway trả 502 `VLM upstream ... unreachable` | vLLM chưa chạy hoặc sai `INFERENCE_VLM_UPSTREAM`; xem `/var/log/portal/vllm.log` |
 | Lần gọi đầu `/v1/embeddings` hoặc `/v1/audio/transcriptions` chậm | Model đang nạp (hoặc đang tải nếu chưa có trong `HF_HOME`); các lần sau nhanh |
 
@@ -289,6 +345,6 @@ Không cần GPU, cũng không cần torch, faster-whisper hay docling: gateway 
 (`tests/gateway/`), proxy bằng `httpx.MockTransport`. Nhóm `dev` chỉ chứa thư viện nhẹ:
 
 ```bash
-uv run --only-group dev python -m pytest     # parser nvidia/amd, chọn 1 GPU, lệnh CUDA/ROCm, gateway
+uv run --only-group dev python -m pytest     # parser nvidia/amd, chọn 1 GPU, lệnh CUDA/ROCm, gateway, requirements/
 uv run --only-group dev ruff check . && uv run --only-group dev ruff format --check .
 ```

@@ -1,0 +1,14 @@
+# Platform: a fresh Linux box with an NVIDIA GPU (a Vast.ai PyTorch instance): the vLLM venv, i.e.
+#   vLLM plus what this repo's launcher imports (python -m vlm_server serve).
+# Install (scripts/vast/run.sh does exactly this):
+#   uv venv /opt/vllm --python 3.12
+#   uv pip install --python /opt/vllm/bin/python -r requirements/vllm-linux-cuda.txt --torch-backend=auto
+# Tested: yes, the Vast.ai deploy (scripts/vast/run.sh).
+# --torch-backend=auto picks the PyTorch CUDA index matching the driver. vllm is not pinned: the
+# newest release whose wheels fit; pin it (vllm==X.Y.Z) for identical instances.
+# Not for the CUDA 12.6 dev box: uv sync there (pyproject.toml pins vllm==0.16.0, torch
+# 2.9.1+cu126). Not for ROCm: vLLM comes in AMD's image (docker/Dockerfile.rocm). Not for macOS: Ollama.
+vllm
+pydantic-settings>=2.3
+httpx>=0.27
+pillow>=10
