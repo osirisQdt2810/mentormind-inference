@@ -12,9 +12,12 @@
 #                                 PLATFORM_ACCEL says; the cuda/rocm flavours are opt-in
 # default_vllm_requirements       vLLM's file: only Linux + CUDA has one (ROCm: AMD's image)
 # uv_flags_for FILE               the uv pip install flags FILE needs
-# install_command VENV FILE       uv pip install --python VENV/bin/python -r FILE <its flags>
+# install_command VENV FILE [EXTRA]
+#                                 uv pip install --python VENV/bin/python -r FILE <its flags> [EXTRA],
+#                                 paths shell-quoted: eval runs exactly the printed command
 # requirements_files FILE         FILE and every file it includes (-r/-c), recursively
-# requirements_hash FILE          sha256 over those files: changes when any of them changes
+# requirements_hash FILE          sha256 over the requirement and option lines of those files (and
+#                                 their names): changes when a requirement changes, not a comment
 #
 # Paths are relative to the repo root (or absolute). Detection and mapping use only bash builtins
 # besides uname and the GPU tools; nothing sets shell options: safe to source under set -euo pipefail.
@@ -59,17 +62,19 @@ uv_flags_for() {
 install_command() {
   local flags
   flags=$(uv_flags_for "$2")
-  echo "uv pip install --python $1/bin/python -r $2${flags:+ $flags}"
+  printf 'uv pip install --python %q -r %q%s%s\n' "$1/bin/python" "$2" "${flags:+ $flags}" "${3:+ $3}"
 }
 
 requirements_files() {
-  local file=$1 dir opt ref _
+  local file=$1 dir opt ref _ next
   [ -f "$file" ] || { echo "Không thấy file requirements: $file" >&2; return 1; }
   case "$file" in */*) dir=${file%/*} ;; *) dir=. ;; esac
   printf '%s\n' "$file"
   while read -r opt ref _ || [ -n "$opt" ]; do
     case "$opt" in
-      -r | -c | --requirement | --constraint) requirements_files "$dir/$ref" || return 1 ;;
+      -r | -c | --requirement | --constraint)
+        case "$ref" in /*) next=$ref ;; *) next="$dir/$ref" ;; esac # relative: to the including file
+        requirements_files "$next" || return 1 ;;
     esac
   done <"$file"
 }
@@ -79,8 +84,15 @@ requirements_hash() {
   files=$(requirements_files "$1") || return 1
   while IFS= read -r file; do
     printf '%s\n' "${file##*/}" # the names count too: moving a line between files is a change
-    cat "$file"
+    _requirement_lines "$file"
   done <<<"$files" | _sha256
+}
+
+# The lines uv reads: comments (pip's rule: "#" at the start or after whitespace), trailing
+# whitespace and blank lines dropped. Editing a header comment then reinstalls nothing and, through
+# the hash in run.sh's generated scripts, restarts nothing.
+_requirement_lines() {
+  sed -e 's/[[:space:]]#.*//' -e '/^[[:space:]]*#/d' -e 's/[[:space:]]*$//' -e '/^$/d' "$1"
 }
 
 _sha256() {
@@ -94,6 +106,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   detect_platform
   echo "Nền tảng: $PLATFORM_OS $PLATFORM_ARCH, accelerator $PLATFORM_ACCEL"
   gateway=${GATEWAY_REQUIREMENTS:-$(default_gateway_requirements)}
+  echo "Các lệnh dưới đây chạy từ gốc repo ($PWD)."
   echo "Gateway (chạy CPU dù máy có GPU): $gateway"
   echo "  uv venv .venv-gateway --python 3.12"
   echo "  $(install_command .venv-gateway "$gateway")"

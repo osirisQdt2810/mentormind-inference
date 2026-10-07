@@ -5,7 +5,9 @@
 # Install: through the gateway file of your platform (gateway-linux-cpu.txt, gateway-macos.txt,
 #   gateway-linux-cuda.txt or gateway-linux-rocm.txt); bash scripts/lib/platform.sh prints which
 #   one and the exact command.
-# Tested: yes, through gateway-linux-cpu.txt on the Vast.ai deploy (Linux x86_64, Python 3.12).
+# Tested: these are the lines of the former requirements-gateway.txt, which the Vast.ai deploy
+#   installed and ran (Linux x86_64, Python 3.12); through gateway-linux-cpu.txt and
+#   scripts/vast/run.sh: not yet.
 # Lower bounds follow mentormind-knowhow-ai's extras (api, video, ingest), so the engines compute
 # what MentorMind's local providers compute.
 fastapi>=0.115

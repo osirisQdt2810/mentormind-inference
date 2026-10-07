@@ -13,9 +13,9 @@
 # .env lines for the team at the end.
 #
 # Libraries come from the clone's requirements/*.txt, chosen by scripts/lib/platform.sh and logged
-# as "Gateway deps: …" / "vLLM deps: …". On this box (Linux + CUDA):
+# as "vLLM deps: …" / "Gateway deps: …" with the exact command run. On this box (Linux + CUDA):
 #   /opt/vllm           requirements/vllm-linux-cuda.txt    uv pip install … --torch-backend=auto
-#   /opt/inference-cpu  requirements/gateway-linux-cpu.txt  uv pip install … --torch-backend=cpu
+#   /opt/inference-cpu  requirements/gateway-linux-cpu.txt  uv pip install … --torch-backend=cpu -q
 # The gateway gets the CPU file although the box has CUDA: it runs on CPU by design, the GPU is
 # vLLM's. GATEWAY_REQUIREMENTS / VLLM_REQUIREMENTS (paths relative to the clone) override.
 set -euo pipefail
@@ -70,13 +70,14 @@ ensure_running() {
   fi
 }
 
-# Venv $1 gets requirements file $2 (hash $3) with the uv flags that file needs; $4 = what to log.
-# Installs when the venv is missing or the file, a file it includes (-r) or the flags changed; the
-# stamp $1/.requirements holds "<file> <flags>" and the hash. Another file or other flags (another
-# platform flavour) rebuild the venv: uv pip install keeps an installed torch that still satisfies
-# the new file, so a CPU torch would survive a switch to CUDA.
+# Venv $1 gets requirements file $2 (hash $3) by running $4, the install command logged in step 2;
+# $5 = what to log. Installs when the venv is missing or a requirement line of the file or of a file
+# it includes (-r) or the flags changed; the stamp $1/.requirements holds "<file> <flags>" and the
+# hash. Another file or other flags (another platform flavour) rebuild the venv: uv pip install
+# keeps an installed torch that still satisfies the new file, so a CPU torch would survive a switch
+# to CUDA.
 sync_venv() {
-  local venv=$1 reqs=$2 hash=$3 what=$4 flags flavour have
+  local venv=$1 reqs=$2 hash=$3 install=$4 what=$5 flags flavour have
   flags=$(uv_flags_for "$reqs")
   flavour="$(rel "$reqs")${flags:+ $flags}"
   have=$(cat "$venv/.requirements" 2>/dev/null || true)
@@ -87,8 +88,7 @@ sync_venv() {
   fi
   log "Cài $what vào $venv: $(rel "$reqs")…"
   [ -x "$venv/bin/python" ] || uv venv "$venv" --python 3.12 -q
-  # shellcheck disable=SC2086 # $flags: zero or more words
-  uv pip install --python "$venv/bin/python" -q -r "$reqs" $flags
+  (eval "$install")   # word for word the logged command (install_command quotes its paths)
   printf '%s\n%s\n' "$flavour" "$hash" > "$venv/.requirements"
   rm -f "$venv/.requirements.sha256"   # stamp of the single requirements-gateway.txt era
 }
@@ -134,11 +134,15 @@ case "$GATEWAY_REQUIREMENTS" in /*) GW_REQS=$GATEWAY_REQUIREMENTS ;; *) GW_REQS=
 case "$VLLM_REQUIREMENTS" in /*) VLLM_REQS=$VLLM_REQUIREMENTS ;; *) VLLM_REQS="$ENGINE/$VLLM_REQUIREMENTS" ;; esac
 GW_HASH=$(requirements_hash "$GW_REQS")       # the file and every file it includes (-r)
 VLLM_HASH=$(requirements_hash "$VLLM_REQS")
-log "vLLM deps: $(rel "$VLLM_REQS")$VLLM_FROM ($(install_command "$VENV" "$(rel "$VLLM_REQS")"))"
-log "Gateway deps: $(rel "$GW_REQS")$GW_FROM ($(install_command "$CPU_VENV" "$(rel "$GW_REQS")"))"
+# The commands sync_venv runs, logged word for word: they work pasted from any directory. vLLM's
+# shows uv's progress (~5 min on a fresh box); the gateway's stays quiet, as before.
+VLLM_INSTALL="cd $(printf %q "$ENGINE") && $(install_command "$VENV" "$(rel "$VLLM_REQS")")"
+GW_INSTALL="cd $(printf %q "$ENGINE") && $(install_command "$CPU_VENV" "$(rel "$GW_REQS")" -q)"
+log "vLLM deps: $(rel "$VLLM_REQS")$VLLM_FROM ($VLLM_INSTALL)"
+log "Gateway deps: $(rel "$GW_REQS")$GW_FROM ($GW_INSTALL)"
 
 # 3. vLLM venv: once per instance (kept across Stop/Start), again when its requirements change
-sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "vLLM (~5 phút lần đầu)"
+sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "$VLLM_INSTALL" "vLLM (~5 phút lần đầu)"
 
 # 4. VLM weights (17 GB, once)
 if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.json >/dev/null 2>&1; then
@@ -147,7 +151,7 @@ if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.jso
 fi
 
 # 5. CPU venv of the gateway: when missing or when its requirements change
-sync_venv "$CPU_VENV" "$GW_REQS" "$GW_HASH" "môi trường CPU cho gateway (faster-whisper, transformers, docling; ~5 phút)"
+sync_venv "$CPU_VENV" "$GW_REQS" "$GW_HASH" "$GW_INSTALL" "môi trường CPU cho gateway (faster-whisper, transformers, docling; ~5 phút)"
 
 # 6. CPU models, once per model set and requirements: Whisper, bge-m3, Docling (layout, tables, OCR)
 MODELS_MARK="$HF_HOME/.mentormind-inference-models"
@@ -162,7 +166,8 @@ fi
 
 # 7. Supervisor services + Caddy entry
 EXTRA_ARGS='["--kv-cache-dtype","'$KV_CACHE_DTYPE'","--cpu-offload-gb","'$CPU_OFFLOAD_GB'","--mm-processor-kwargs","{\"min_pixels\":'$MIN_PIXELS',\"max_pixels\":'$MIN_PIXELS'}"]'
-# The requirements hash is part of each script: new libraries restart the service that uses them.
+# The requirements hash is part of each script: new libraries restart the service that uses them
+# (the hash skips comments: editing a requirements header restarts nothing).
 write_if_changed "$SCRIPTS/vllm.sh" <<EOF
 #!/bin/bash
 # vLLM deps $(rel "$VLLM_REQS") $VLLM_HASH

@@ -1,10 +1,12 @@
-# Platform: macOS on Apple silicon (arm64). Intel Macs are not covered (PyTorch's last x86_64
-#   macOS wheel is 2.2.2).
+# Platform: macOS 14+ (Sonoma) on Apple silicon (arm64). On macOS 13 docling-parse (docling>=2.132
+#   needs >=7.22.1) has no wheel and uv builds it from source. Intel Macs are not covered
+#   (PyTorch's last x86_64 macOS wheel is 2.2.2).
 # Install:
 #   uv venv .venv-gateway --python 3.12
 #   uv pip install --python .venv-gateway/bin/python -r requirements/gateway-macos.txt
-# Tested: resolution only (uv pip compile --python-platform aarch64-apple-darwin
-#   --python-version 3.12); not installed or run on a Mac yet.
+# Tested: resolution only, wheels only (torch 2.14.1, docling-parse 7.22.2 on 2026-10-08):
+#   MACOSX_DEPLOYMENT_TARGET=14.0 uv pip compile requirements/gateway-macos.txt --python-platform aarch64-apple-darwin --python-version 3.12
+#   Not installed or run on a Mac yet.
 # torch is PyPI's macOS wheel, which carries MPS (no --torch-backend: macOS has one torch build).
 # Docling's models use MPS on their own; bge-m3 and faster-whisper (CTranslate2) run on the CPU.
 -r gateway-common.txt

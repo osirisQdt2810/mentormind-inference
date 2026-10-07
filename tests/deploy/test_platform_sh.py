@@ -95,3 +95,58 @@ def test_install_command_is_the_header_command() -> None:
         " -r requirements/gateway-linux-cpu.txt --torch-backend=cpu"
     )
     assert result.stdout.strip() in (REPO / "requirements/gateway-linux-cpu.txt").read_text()
+
+
+def test_the_hash_ignores_comments_and_blank_lines(tmp_path: Path) -> None:
+    """A header edit (e.g. the "Tested:" line) must not reinstall a venv or restart vLLM."""
+    (tmp_path / "common.txt").write_text("fastapi>=0.115\n")
+    flavour = tmp_path / "flavour.txt"
+    flavour.write_text("# Tested: no\n-r common.txt\ntorch>=2.2\n")
+    hash_of = f'requirements_hash "{flavour}"'
+    first = run_lib(hash_of).stdout.strip()
+    flavour.write_text(
+        "# Tested: yes, on Vast\n#   since today\n\n-r common.txt  \ntorch>=2.2  # CPU\n"
+    )
+    (tmp_path / "common.txt").write_text("# shared\nfastapi>=0.115 # api\n\n")
+    assert run_lib(hash_of).stdout.strip() == first
+    flavour.write_text("# Tested: yes, on Vast\n-r common.txt\ntorch>=2.3\n")
+    assert run_lib(hash_of).stdout.strip() != first
+
+
+def test_an_absolute_include_is_followed(tmp_path: Path) -> None:
+    common = tmp_path / "shared" / "common.txt"
+    common.parent.mkdir()
+    common.write_text("fastapi>=0.115\n")
+    (tmp_path / "flavour.txt").write_text(f"-r {common}\ntorch>=2.2\n")
+    result = run_lib(f'requirements_files "{tmp_path}/flavour.txt"')
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [f"{tmp_path}/flavour.txt", str(common)]
+
+
+def test_install_command_runs_word_for_word_under_eval(tmp_path: Path) -> None:
+    """run.sh logs install_command's output and evals that same string: paths must survive it."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "uv").write_text('#!/bin/sh\nfor arg in "$@"; do echo "$arg"; done\n')
+    (bin_dir / "uv").chmod(0o755)
+    snippet = 'eval "$(install_command "/opt/my venv" "req dir/gateway-linux-cpu.txt" -q)"'
+    result = run_lib(snippet, path=f"{bin_dir}:/usr/bin:/bin")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "pip",
+        "install",
+        "--python",
+        "/opt/my venv/bin/python",
+        "-r",
+        "req dir/gateway-linux-cpu.txt",
+        "--torch-backend=cpu",
+        "-q",
+    ]
+
+
+def test_run_sh_installs_only_through_the_logged_command() -> None:
+    """No second, unlogged "uv pip install" in run.sh: what the log shows is what runs."""
+    lines = (REPO / "scripts/vast/run.sh").read_text().splitlines()
+    code = [line for line in lines if not line.lstrip().startswith("#")]
+    assert not [line for line in code if "uv pip install" in line]
+    assert any('(eval "$install")' in line for line in code)

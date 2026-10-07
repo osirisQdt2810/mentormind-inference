@@ -1,11 +1,16 @@
 # Platform: a fresh Linux box with an NVIDIA GPU (a Vast.ai PyTorch instance): the vLLM venv, i.e.
 #   vLLM plus what this repo's launcher imports (python -m vlm_server serve).
-# Install (scripts/vast/run.sh does exactly this):
+# Install (scripts/vast/run.sh runs this command from the clone):
 #   uv venv /opt/vllm --python 3.12
 #   uv pip install --python /opt/vllm/bin/python -r requirements/vllm-linux-cuda.txt --torch-backend=auto
-# Tested: yes, the Vast.ai deploy (scripts/vast/run.sh).
+# Tested: the same packages the Vast.ai deploy installed before this file (uv pip install vllm
+#   --torch-backend=auto, then pydantic-settings, httpx and pillow), vllm unpinned then as now, so
+#   that box runs the vllm of its install day; this file through scripts/vast/run.sh: not yet.
+#   Resolves: uv pip compile requirements/vllm-linux-cuda.txt --python-platform x86_64-unknown-linux-gnu
+#   --python-version 3.12 --torch-backend cu128 (vllm 0.24.0, torch 2.11.0+cu128 on 2026-10-08).
 # --torch-backend=auto picks the PyTorch CUDA index matching the driver. vllm is not pinned: the
-# newest release whose wheels fit; pin it (vllm==X.Y.Z) for identical instances.
+# newest release whose wheels fit; pin it (vllm==X.Y.Z) for identical instances. Changing a
+# requirement line here restarts vLLM on the next run.sh (2-3 min without VLM); comments do not.
 # Not for the CUDA 12.6 dev box: uv sync there (pyproject.toml pins vllm==0.16.0, torch
 # 2.9.1+cu126). Not for ROCm: vLLM comes in AMD's image (docker/Dockerfile.rocm). Not for macOS: Ollama.
 vllm

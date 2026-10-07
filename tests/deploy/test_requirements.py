@@ -101,3 +101,9 @@ def test_the_header_command_carries_the_flags_run_sh_uses(path: Path) -> None:
     assert any(
         line.rstrip().endswith(f"-r {rel}" + (f" {flags}" if flags else "")) for line in commands
     )
+
+
+def test_the_macos_file_names_its_minimum_macos() -> None:
+    """docling-parse >= 7.22.1 has macOS 14+ wheels only: on 13 uv would build it from source."""
+    text = header(REQUIREMENTS / "gateway-macos.txt")
+    assert "macOS 14+" in text and "MACOSX_DEPLOYMENT_TARGET=14.0 uv pip compile" in text
