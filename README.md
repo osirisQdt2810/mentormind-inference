@@ -213,7 +213,9 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | Biến của script | Mặc định | Ý nghĩa |
 |---|---|---|
 | `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
-| `VLM_VARIANT` | `instruct` | `thinking` = Qwen3-VL-8B-Thinking (`--reasoning-parser qwen3`; in ra `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`): chính xác hơn, chậm hơn ~15 lần. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra |
+| `VLM_VARIANT` | `instruct` | Model đã đo trên LASI (`benchmarks/lasi-vlm/README.md`): `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit). Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra |
+| `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT` |
+| `SPEC_CONFIG` | (không) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}` |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
 | `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |
