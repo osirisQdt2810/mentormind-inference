@@ -18,5 +18,8 @@ pydantic-settings>=2.3
 faster-whisper>=1.1
 # PyAV 19 dropped av.open(metadata_errors=...), which faster-whisper 1.2.1 still passes: decode_audio crashes.
 av>=11,<19
-docling>=2.132
+# Same as mentormind-knowhow-ai's uv.lock: the client rebuilds the gateway's DoclingDocument with its own
+# docling-core, which refuses a newer schema. Bump together with the client's lock.
+docling==2.132.0
+docling-core==2.99.0
 transformers>=4.44
