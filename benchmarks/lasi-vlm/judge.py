@@ -1,0 +1,85 @@
+"""Blind semantic judge helpers.
+
+render <scores.json> <label> <which: final|pass_a|pass_b_run> > prompt.txt   the judge prompt for one run (no model name)
+metrics <scores.json> <label> <which> <judge1.json> [judge2.json]  semantic recall/precision from the verdicts
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+S = Path(__file__).parent
+TRUTH = Path(os.environ.get("MENTORMIND", ".")) / "data/video/groundtruth.json"
+truth = json.loads(TRUTH.read_text())["steps"]
+
+
+def truth_text() -> str:
+    return "\n".join(
+        f"{i}. [{t['t_start']:.1f}–{t['t_end']:.1f}] {t.get('actor')}, {'essential' if t.get('essential', True) else 'side'}: "
+        f"{t['step']}" + (f" | {t['key_point']}" if t.get("key_point") else "")
+        for i, t in enumerate(truth)
+    )
+
+
+def preds(scores: dict, label: str, which: str) -> list[dict]:
+    """The steps of one run: ``final``, ``pass_a`` or ``pass_b_run`` (pass B's own pass A)."""
+    return scores[label][f"{which}_steps"]
+
+
+def render(scores_path: str, label: str, which: str) -> str:
+    scores = json.loads(Path(scores_path).read_text())
+    ps = preds(scores, label, which)
+    pred = "\n".join(
+        f"{i}. [{p['t'][0]:.1f}–{p['t'][1]:.1f}] {p.get('actor')}: {p['step']}"
+        + (f" | {p['key_point']}" if p.get("key_point") else "")
+        for i, p in enumerate(ps)
+    )
+    return (
+        (S / "judge_prompt.md").read_text().replace("{truth}", truth_text()).replace("{pred}", pred)
+    )
+
+
+def metrics(scores_path: str, label: str, which: str, verdicts: list[str]) -> dict:
+    scores = json.loads(Path(scores_path).read_text())
+    n_pred = len(preds(scores, label, which))
+    essential = {i for i, t in enumerate(truth) if t.get("essential", True)}
+    out = []
+    for path in verdicts:
+        v = json.loads(Path(path).read_text())
+        matched = [p for p in v["preds"] if p.get("match") is not None]
+        found = {p["match"] for p in matched}
+        actor = [p["actor_ok"] for p in matched if p.get("actor_ok") is not None]
+        kp = [p["key_point_ok"] for p in matched if p.get("key_point_ok") is not None]
+        out.append(
+            {
+                "sem_recall": len(found) / len(truth),
+                "sem_recall_essential": len(found & essential) / len(essential),
+                "sem_precision": len(matched) / n_pred if n_pred else 0.0,
+                "wrong_rate": sum(1 for p in v["preds"] if p.get("wrong")) / n_pred
+                if n_pred
+                else 0.0,
+                "actor_acc": sum(actor) / len(actor) if actor else None,
+                "key_point_acc": sum(kp) / len(kp) if kp else None,
+            }
+        )
+    keys = out[0].keys()
+    return {
+        k: round(
+            sum(o[k] for o in out if o[k] is not None) / max(1, sum(o[k] is not None for o in out)),
+            3,
+        )
+        for k in keys
+    } | {
+        "judges": len(out),
+        "spread_recall": round(
+            max(o["sem_recall"] for o in out) - min(o["sem_recall"] for o in out), 3
+        ),
+    }
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "render":
+        print(render(*sys.argv[2:5]))
+    else:
+        print(json.dumps(metrics(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:])))
