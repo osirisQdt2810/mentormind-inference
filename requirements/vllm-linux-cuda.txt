@@ -13,7 +13,9 @@
 # requirement line here restarts vLLM on the next run.sh (2-3 min without VLM); comments do not.
 # Not for the CUDA 12.6 dev box: uv sync there (pyproject.toml pins vllm==0.16.0, torch
 # 2.9.1+cu126). Not for ROCm: vLLM comes in AMD's image (docker/Dockerfile.rocm). Not for macOS: Ollama.
-vllm
+# Pinned to the version deployed and measured on the Vast RTX A5000 (2026-10-08): 64K context,
+# FP8 KV cache, 40 frames x 512 tokens, ~8 s per pass-A call. Bump deliberately, re-run the checks.
+vllm==0.31.0
 pydantic-settings>=2.3
 httpx>=0.27
 pillow>=10
