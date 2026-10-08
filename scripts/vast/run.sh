@@ -207,8 +207,10 @@ if reasoning == "1":
     args += ["--reasoning-parser", "qwen3"]
 if spec:
     args += ["--speculative-config", json.dumps(json.loads(spec))]
-if whitespace == "compact":  # dotted key: merges into structured outputs, keeps --reasoning-parser
-    args += ["--structured-outputs-config.disable_any_whitespace", "true"]
+if whitespace == "compact":  # dotted keys merge into structured outputs (keeps --reasoning-parser);
+    # vLLM accepts disable_any_whitespace only with an explicit xgrammar/guidance backend.
+    args += ["--structured-outputs-config.backend", "xgrammar",
+             "--structured-outputs-config.disable_any_whitespace", "true"]
 print(json.dumps(args))
 PY
 )
