@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import json
 import sys
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from statistics import mean
+from statistics import median
 
 from judge import metrics  # same folder
 
@@ -25,7 +26,11 @@ ALL_LISTS = ("pass_a", "pass_b_run", "final")
 
 
 def fmt(value: float | None, digits: int = 2) -> str:
-    return "–" if value is None else f"{value:.{digits}f}"
+    """Half-up rounding of the exact value (0.185185 -> 0.19, not the 0.18 of a float 0.185)."""
+    if value is None:
+        return "–"
+    step = Decimal(1).scaleb(-digits)
+    return str(Decimal(repr(value)).quantize(step, rounding=ROUND_HALF_UP))
 
 
 def judged(base: Path, run: dict, which: str) -> dict | None:
@@ -49,10 +54,10 @@ def main() -> None:
     ]
     speed = [
         (
-            "| Model | Trọng số | Giây mỗi lượt gọi (trung vị) | Token sinh ra mỗi lượt (trung vị) | "
-            "Tốc độ sinh (token/giây) | Cả job trên UI |"
+            "| Model | Trọng số | Lượt gọi (A+B) | Giây mỗi lượt (trung vị) | Token sinh mỗi lượt (trung vị) | "
+            "Token sinh / giây gọi (gồm prefill) | Cả job trên UI |"
         ),
-        "|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|",
     ]
     for run in runs:
         row = json.loads((base / run["scores"]).read_text())[run["label"]]
@@ -70,11 +75,13 @@ def main() -> None:
                 f"{fmt(sem and sem['sem_precision'])} | {fmt(sem and sem['wrong_rate'])} | "
                 f"{fmt(sem and sem['actor_acc'])} | {fmt(repo['recall'])} | {fmt(repo['recall_time_only'])} |"
             )
-        lat = [row[k] for k in ("latency_pass_a", "latency_pass_b") if k in row]
+        passes = [row[k] for k in ("latency_pass_a", "latency_pass_b") if k in row]
+        latencies = [x for p in passes for x in p["latencies_s"]]
+        tokens = [x for p in passes for x in p["out_tokens"]]
         job = run.get("job_s")
         speed.append(
-            f"| {run['model']} | {run['weights']} | {fmt(mean(x['median_s'] for x in lat), 0)} | "
-            f"{fmt(mean(x['out_tokens_median'] for x in lat), 0)} | {fmt(mean(x['out_tok_per_s'] for x in lat), 1)} | "
+            f"| {run['model']} | {run['weights']} | {len(latencies)} | {fmt(median(latencies), 0)} | "
+            f"{fmt(median(tokens), 0)} | {fmt(sum(tokens) / sum(latencies), 1)} | "
             f"{'–' if job is None else f'{job / 60:.0f} phút'} |"
         )
     print("\n".join(acc))

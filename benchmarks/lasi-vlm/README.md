@@ -9,16 +9,18 @@ gộp), không so kết quả trung gian.
 ## Kết luận
 
 - **Dùng 8B Thinking FP8**, kèm `KNOWHOW_VLM_CONCURRENCY=4` ở MentorMind và speculative decoding ngram ở máy chủ:
-  cả job video LASI chạy **23 phút**. Chạy lần lượt từng request thì mất khoảng 85 phút: 66 phút đo được tới khi
-  dừng ở bước lý do, phần còn lại là ước tính.
-- **Thinking tốt hơn Instruct rõ rệt**: danh sách cuối tìm ra 43–56% bước đúng (Instruct 18%), tìm ra bước chính
-  56–69% (Instruct 31%), chính xác 69–88% (Instruct 38%), bịa 4–8% (Instruct 25%). Đổi lại, Instruct nhanh nhất
-  (9 phút).
-- **FP8 không kém BF16**: hai bản cho tìm ra 0.44 và 0.43, trong khi FP8 sinh token nhanh hơn 1.6 lần (59 so với
-  37 token/giây) và nhẹ hơn 6 GB VRAM.
-- **30B-A3B AWQ chưa hơn 8B Thinking trên video này**: tìm ra 0.33, đúng người làm tốt nhất (0.80), mỗi lượt gọi
-  nhanh hơn FP8 khoảng 2.5 lần (19 so với 49 giây), cả job 31 phút khi chạy lần lượt. Phải bật JSON gọn
-  (`JSON_WHITESPACE=compact`), nếu không 30B lặp khoảng trắng tới hết `max_tokens` ở 10/41 câu trả lời.
+  cả job video LASI chạy **23 phút**. Chạy lần lượt từng request thì khoảng 73 phút: 66 phút đo được tới khi job dừng
+  ở bước lý do, cộng khoảng 7 phút cho các lượt lý do còn lại. Tức là nhanh hơn khoảng 3.2 lần.
+- **8B Thinking tốt hơn Instruct rõ rệt**: ba danh sách cuối của 8B Thinking tìm ra 43–56% bước đúng (Instruct 19%),
+  tìm ra bước chính 56–69% (Instruct 31%), chính xác 69–88% (Instruct 38%), bịa 4–8% (Instruct 25%). Đổi lại,
+  Instruct nhanh nhất (9 phút).
+- **FP8 không kém BF16 về số bước tìm ra** (0.44 so với 0.43), sinh token nhanh hơn 1.6 lần (59 so với 37.5 token/giây)
+  và nhẹ hơn 6.3 GiB VRAM. Lần FP8 đầu có độ chính xác thấp hơn BF16 (0.69 so với 0.88), lần FP8 thứ hai thì ngang
+  (0.84). Với một lần BF16 và hai lần FP8 thì chưa khẳng định chắc được, nhưng không thấy FP8 kém một cách nhất quán.
+- **30B-A3B AWQ chưa hơn 8B Thinking trên video này**: tìm ra 0.33, chính xác 0.63, bịa 0.13, đúng người làm tốt nhất
+  (0.80). Mỗi lượt gọi nhanh hơn FP8 khoảng 2.5 lần (20 so với 50 giây), cả job 31 phút khi chạy lần lượt. Cần bật
+  JSON gọn (`JSON_WHITESPACE=compact`). Nếu không, 30B lặp khoảng trắng tới hết `max_tokens` ở 10/44 câu trả lời
+  (8B: 2/242). Bật rồi thì hết lặp khoảng trắng, nhưng 3/63 câu vẫn chạm hạn mức vì lặp chữ số.
 - **Tối ưu ở máy chủ**: gộp nhiều request (4 cùng lúc → tổng 167 token/giây, gấp 3 lần) là đòn bẩy chính.
   Speculative decoding chỉ giúp khi chạy một request: ngram +32%, EAGLE3 +24% (đầu dự đoán huấn luyện cho
   Instruct). Khi đã gộp 4 request thì cả hai không còn khác biệt.
@@ -40,19 +42,20 @@ gộp), không so kết quả trung gian.
 
 ### Mọi model chạy đúng luồng người dùng: tải video lên giao diện MentorMind
 
-Trang "Tải dữ liệu" → `POST /videos` → `POST /videos/{id}/process`, rồi chờ job xong. Chỉ đổi model ở máy chủ và
-`KNOWHOW_VLM_MODEL` ở client; mọi thứ khác giữ nguyên:
+Trang "Tải dữ liệu" → `POST /videos` → `POST /videos/{id}/process`, rồi chờ job xong. Đổi model ở máy chủ và
+`KNOWHOW_VLM_MODEL` ở client; mọi thứ khác giữ nguyên, trừ cấu hình JSON của 30B (dòng cuối bảng):
 
 | Giai đoạn | Cấu hình |
 |---|---|
 | Cắt đoạn | Theo cảnh (PySceneDetect) → **30 đoạn**, giống hệt nhau ở mọi lần chạy (đã so ranh giới) |
 | Nhận dạng lời nói | Whisper `small` trên máy chủ |
-| Lượt A | Mỗi đoạn một lượt gọi VLM: 4 khung/giây, tối đa 40 khung, 512 token/khung (448×252), trả JSON theo schema |
+| Lượt A | Mỗi đoạn một lượt gọi VLM: lấy mẫu theo chuyển động 2/4/8 khung/giây (mặc định 4), bỏ khung gần trùng, tối đa 40 khung, 512 token/khung (448×252). Trên LASI mọi lần chạy gửi cùng 429 khung (14.3 khung/đoạn, trung bình 2.2 khung/giây). Trả JSON theo schema |
 | Lượt B | Chạy lượt A lần nữa, chỉ giữ bước cả hai lần cùng thấy (lọc bước bịa, spec 04 §3) |
 | Lượt C | Gộp bước bị cắt ngang ranh giới đoạn (chính model đó, chỉ chữ) |
 | Đề xuất lý do | Cho bước có lời chuyên gia (chính model đó) |
 | Thời điểm bước | Các bước phủ kín đoạn theo thứ tự (`KNOWHOW_VLM_STEP_TIMES=segment`) |
 | Giới hạn trả lời | Instruct 8192 token; Thinking 16 384 token |
+| JSON ở máy chủ | Các lần chạy 8B: khoảng trắng tự do (`JSON_WHITESPACE=any`); 30B: JSON gọn (`compact`, mục 5) |
 
 Mỗi model có **một bản sao riêng** của video (`ffmpeg -c copy`, chỉ đổi metadata `title`: khung hình và tiếng giống
 hệt, `video_id` khác) và **mã công đoạn riêng**, nên kết quả nằm cạnh nhau trong giao diện (trang Duyệt, chọn mã):
@@ -71,11 +74,11 @@ Vast.ai, 1× RTX A5000 24 GB (Ampere), vLLM 0.31.0, context 65 536 cho mọi mod
 `gpu-memory-utilization` 0.94, mỗi lần một model (24 GB không chứa được hai). Client ở Việt Nam gọi qua ngrok →
 Caddy (token) → gateway → vLLM.
 
-| Model | VRAM trọng số | KV cache còn lại | Ghi chú |
+| Model | VRAM trọng số (vLLM báo) | KV cache còn lại | Ghi chú |
 |---|---|---|---|
-| 8B BF16 (Instruct, Thinking) | 16.6 GB | 72 624 token | |
-| 8B Thinking FP8 | 10.3 GB | 164 672 token | |
-| 30B-A3B AWQ | 17.0 GB | 100 528 token (1.5 request 64K cùng lúc) | cần `JSON_WHITESPACE=compact` (mục 5) |
+| 8B BF16 (Instruct, Thinking) | 16.6 GiB | 72 624 token | |
+| 8B Thinking FP8 | 10.3 GiB | 164 672 token | |
+| 30B-A3B AWQ | 17.0 GiB | 100 528 token (1.5 request 64K cùng lúc) | cần `JSON_WHITESPACE=compact` (mục 5) |
 
 ### Cách chấm danh sách cuối
 
@@ -96,55 +99,62 @@ Caddy (token) → gateway → vLLM.
 2. **Chỉ số tự động của repo** (spec 04 §6), để đối chiếu: khớp khi tên giống nhau theo `token_set_ratio ≥ 70` **và**
    thời gian chồng nhau (rất chặt: "Gắp cụm cốc nắp đỏ và đặt vào thùng carton" và "Robot gắp cốc bỏ vào thùng" không
    khớp), và **phủ thời gian** (bước đúng nào có ít nhất một bước dự đoán trùng thời gian).
-3. **Tốc độ**: thời gian cả job trên UI (đồng hồ monotonic, không tính lúc máy client ngủ), giây mỗi lượt gọi VLM
-   (trung vị), token sinh ra mỗi lượt, tốc độ sinh token/giây.
+3. **Tốc độ**: thời gian cả job trên UI (đồng hồ monotonic, không tính lúc máy client ngủ); trên mọi lượt gọi của lượt
+   A và B: giây mỗi lượt (trung vị), token sinh ra mỗi lượt (trung vị), token sinh chia thời gian gọi.
 
 ## 2. Độ chính xác (danh sách cuối)
 
 Danh sách cuối của mỗi lần chạy, chấm bởi hai giám khảo mù (trung bình). Hai giám khảo cho kết quả gần như trùng
-nhau: lệch tối đa 0.04 về "tìm ra". Cột "khớp chữ chặt" và "phủ thời gian" là chỉ số tự động của repo.
+nhau: "tìm ra" lệch nhau tối đa một bước (1/27). Cột "khớp chữ chặt" và "phủ thời gian" là chỉ số tự động của repo.
 
 | Model | Trọng số | Danh sách | Số bước | Tìm ra (recall) | Tìm ra bước chính | Chính xác (precision) | Bịa | Đúng người làm | Khớp chữ chặt (repo) | Phủ thời gian |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 8B Instruct | BF16 | cuối (UI) | 16 | 0.18 | 0.31 | 0.38 | 0.25 | 0.67 | 0.07 | 0.78 |
-| 8B Thinking | BF16 | cuối (UI) | 20 | 0.43 | 0.66 | 0.88 | 0.07 | 0.77 | 0.18 | 0.48 |
-| 8B Thinking | FP8 | cuối (UI) | 24 | 0.44 | 0.56 | 0.69 | 0.08 | 0.73 | 0.11 | 0.81 |
-| 30B-A3B Thinking | AWQ 4-bit | cuối (UI) | 16 | 0.33 | 0.44 | 0.62 | 0.12 | 0.80 | 0.11 | 0.63 |
+| 8B Instruct | BF16 | cuối (UI) | 16 | 0.19 | 0.31 | 0.38 | 0.25 | 0.67 | 0.07 | 0.78 |
+| 8B Thinking | BF16 | cuối (UI) | 20 | 0.43 | 0.66 | 0.88 | 0.08 | 0.77 | 0.19 | 0.48 |
+| 8B Thinking | FP8 | cuối (UI) | 24 | 0.44 | 0.56 | 0.69 | 0.08 | 0.73 | 0.11 | 0.82 |
+| 30B-A3B Thinking | AWQ 4-bit | cuối (UI) | 16 | 0.33 | 0.44 | 0.63 | 0.13 | 0.80 | 0.11 | 0.63 |
 | 8B Thinking, tối ưu (4 request cùng lúc + ngram) | FP8 | cuối (UI) | 25 | 0.56 | 0.69 | 0.84 | 0.04 | 0.76 | 0.22 | 0.74 |
 
-- **Thinking so với Instruct**: Thinking tìm ra gấp 2.4–3.1 lần số bước đúng, chính xác khoảng gấp đôi, bịa ít hơn 3–6 lần.
-  Instruct sót gần hết các bước của công nhân và nhiều cảnh robot.
-- **BF16 so với FP8**: chênh lệch nằm trong mức dao động giữa các lần chạy. Các lượt A độc lập của 8B Thinking cho
-  "tìm ra" từ 0.52 đến 0.59; hai lần chạy FP8 với cùng model cho danh sách cuối 0.44 và 0.56. Lần chạy tối ưu không
-  đổi đầu ra của model (chạy song song và ngram đều không đổi kết quả sinh), nên chênh lệch đó là do lấy mẫu ngẫu
-  nhiên.
-- **Lượt B lọc mất bước đúng** ở mọi model: danh sách cuối luôn tìm ra ít hơn lượt A (FP8: 0.59 → 0.44). Lượt B là
-  chỗ nên xem lại tiếp theo.
-- 30B đưa ra ít bước nhất (16) và bỏ sót cảnh dựng thùng và hai chu kỳ robot gắp cốc (55–60 giây, 92–98 giây).
+- **8B Thinking so với Instruct**: ba lần chạy 8B Thinking tìm ra gấp 2.3–3.0 lần số bước đúng (11.5–15 so với 5
+  bước), chính xác khoảng gấp đôi, bịa ít hơn 3–6 lần. Instruct sót gần hết các bước của công nhân và nhiều cảnh
+  robot. 30B Thinking hơn Instruct ít hơn: tìm ra gấp 1.8 lần, chính xác gấp 1.7 lần, bịa ít hơn 2 lần.
+- **BF16 so với FP8**: số bước tìm ra bằng nhau (0.43 và 0.44). Lần FP8 đầu chính xác thấp hơn (0.69 so với 0.88) và
+  tìm ra bước chính ít hơn (0.56 so với 0.66). Lần FP8 thứ hai (bản tối ưu, đầu ra của model không đổi) được 0.84 và
+  0.69, tức chênh lệch đó cỡ mức dao động giữa các lần chạy cùng model. Với một lần BF16 và hai lần FP8 thì chưa khẳng
+  định chắc được.
+- **Lượt B lọc mất cả bước đúng**. Đo bằng giám khảo ở hai lần chạy: Instruct tìm ra 0.26 sau lượt A còn 0.19 ở danh
+  sách cuối, FP8 từ 0.59 còn 0.44 (verdict của lượt A nằm trong `results/verdicts/`). Phủ thời gian giảm ở cả năm lần
+  chạy (Instruct 0.82→0.78, BF16 0.96→0.48, FP8 1.00→0.82, 30B 0.67→0.63, FP8 tối ưu 1.00→0.74). Lượt B là chỗ nên
+  xem lại tiếp theo.
+- 30B đưa ra ít bước nhất, ngang Instruct (16), và bỏ sót cảnh dựng thùng (51–53 giây) và hai chu kỳ robot gắp cốc
+  (55–60 giây, 92–98 giây).
 
 ## 3. Tốc độ
 
-| Model | Trọng số | Giây mỗi lượt gọi (trung vị) | Token sinh ra mỗi lượt (trung vị) | Tốc độ sinh (token/giây) | Cả job trên UI |
-|---|---|---|---|---|---|
-| 8B Instruct | BF16 | 5 | 56 | 18.1 | 9 phút |
-| 8B Thinking | BF16 | 71 | 2688 | 37.5 | 103 phút |
-| 8B Thinking | FP8 | 49 | 2746 | 59.3 | 66 phút |
-| 30B-A3B Thinking | AWQ 4-bit | 19 | 1690 | 121.9 | 31 phút |
-| 8B Thinking, tối ưu (4 request cùng lúc + ngram) | FP8 | 66 | 3072 | 51.2 | 23 phút |
+| Model | Trọng số | Lượt gọi (A+B) | Giây mỗi lượt (trung vị) | Token sinh mỗi lượt (trung vị) | Token sinh / giây gọi (gồm prefill) | Cả job trên UI |
+|---|---|---|---|---|---|---|
+| 8B Instruct | BF16 | 60 | 5 | 55 | 18.1 | 9 phút |
+| 8B Thinking | BF16 | 61 | 77 | 2920 | 37.5 | 103 phút |
+| 8B Thinking | FP8 | 60 | 50 | 2870 | 59.3 | 66 phút |
+| 30B-A3B Thinking | AWQ 4-bit | 63 | 20 | 1799 | 121.6 | 31 phút |
+| 8B Thinking, tối ưu (4 request cùng lúc + ngram) | FP8 | 61 | 66 | 3022 | 51.2 | 23 phút |
 
-- "Giây mỗi lượt gọi" và "tốc độ sinh" là của **từng** request. Lần chạy tối ưu có 4 request cùng lúc, nên mỗi
-  request chậm hơn một chút nhưng tổng thông lượng gấp khoảng 3 lần (mục 4).
+- Số liệu theo **từng** lượt gọi. Lần chạy tối ưu có 4 request cùng lúc, nên mỗi lượt chậm hơn một chút nhưng tổng
+  thông lượng gấp khoảng 3 lần (mục 4).
+- "Token sinh / giây gọi" gồm cả xử lý prompt (khoảng 8 000 token ảnh mỗi lượt) và mạng. Với Thinking (khoảng 3 000
+  token ra mỗi lượt) con số này gần tốc độ sinh thật. Với Instruct (khoảng 55 token ra mỗi lượt) phần lớn thời gian là
+  xử lý prompt, nên 18 token/giây không phải tốc độ sinh của nó.
 - Thời gian cả job: Instruct, 30B và bản tối ưu là **đủ cả job** (cắt đoạn, lời nói, lượt A, B, C, đề xuất lý do).
-  BF16 tính tới lúc lưu bước nháp (bước lý do bị dừng để lấy GPU cho phần tối ưu). FP8 lần lượt dừng ở bước lý do
-  5/14 (lỗi đã sửa, mục 5). Cả job FP8 chạy lần lượt ước tính khoảng 85 phút: lượt A 26 + lượt B 25 + gộp 4 + lý do
-  khoảng 28.
+  BF16 tính tới lúc lưu bước nháp (bước lý do bị dừng để lấy GPU cho phần tối ưu). FP8 chạy lần lượt dừng ở bước lý do
+  (lỗi đã sửa, mục 5). 66 phút của nó gồm cắt đoạn và lời nói 2.4, lượt A 25.9, lượt B 25.0, gộp 4.1 và 8.5 phút lý do
+  tới lúc dừng. Các lượt lý do còn lại (khoảng 52 giây mỗi lượt) thêm khoảng 7 phút, nên cả job khoảng 73 phút.
 
 ## 4. Tối ưu tốc độ
 
 Đo trên **6 đoạn LASI thật** (pass A, `speed.py`), 8B Thinking FP8, cùng máy chủ; mỗi cấu hình đo khi chạy một
 request và khi chạy 4 request cùng lúc. Số liệu gốc: `results/engine/`.
 
-| Cấu hình máy chủ | 1 request (tổng token/giây) | 4 request cùng lúc | Số token đoán trúng mỗi bước |
+| Cấu hình máy chủ | 1 request (tổng token/giây) | 4 request cùng lúc | Token sinh mỗi bước giải mã (acceptance length, gồm 1 token của model chính) |
 |---|---|---|---|
 | Không dùng speculative decoding | 56 | 167 | – |
 | ngram (`num_speculative_tokens` 4, `prompt_lookup` 2–4) | **74 (+32%)** | 169 | 2.1–2.4 |
@@ -159,13 +169,15 @@ request và khi chạy 4 request cùng lúc. Số liệu gốc: `results/engine/
 2. **Speculative decoding** (không đổi kết quả): chỉ có ích khi ít request. Phần suy nghĩ của Thinking hay lặp cụm từ
    nên ngram đoán trúng nhiều hơn EAGLE3. Hai đầu EAGLE3 có sẵn được huấn luyện cho bản Instruct; không có đầu nào cho
    Qwen3-VL-8B-Thinking. Không dùng được model nháp nhỏ (Qwen3-VL-2B) vì vLLM 0.31 không hỗ trợ M-RoPE cho model nháp.
-3. **Prefix caching** (bật sẵn): 45–67% token prompt được dùng lại giữa các lượt.
+3. **Prefix caching** (bật sẵn): lượt B gửi lại đúng prompt của lượt A, nên phần ảnh đã tính được dùng lại khi còn
+   trong cache. Tỉ lệ trúng trong `results/engine/spec_metrics.txt` (45–67%) chỉ phản ánh cách đo (`speed.py` gửi lại
+   cùng 6 prompt ở mỗi chế độ), không phải một job thật.
 4. **Chưa dùng**: `thinking_token_budget` của vLLM (cắt phần suy nghĩ sau N token) làm đổi kết quả. Không cần, vì
    mục tiêu 40 phút đã đạt.
 
 **Kết quả trên UI**: FP8 + ngram + `KNOWHOW_VLM_CONCURRENCY=4`, cả job **22.9 phút** (trạng thái hoàn tất, 30 đoạn,
-25 bước nháp, 10 bước có lời chuyên gia, 1 lý do đề xuất). Lượt A và B mất 18 phút, so với 51 phút khi chạy lần lượt.
-Chất lượng không giảm (dòng "tối ưu" ở mục 2).
+25 bước nháp, 10 bước có lời chuyên gia, 1 lý do đề xuất), so với khoảng 73 phút khi chạy lần lượt. Lượt A và B mất
+18 phút thay vì 51. Chạy song song và ngram không đổi đầu ra của model; danh sách cuối không kém (dòng "tối ưu" ở mục 2).
 
 Cấu hình đề nghị cho máy chủ của nhóm:
 
@@ -184,7 +196,7 @@ bash /root/run.sh
 | ngrok free trả **503** khi một response im lặng khoảng 5 phút | Lần chạy 8B Thinking BF16 đầu tiên hỏng ở lượt C sau 117 phút (lượt gộp suy luận hơn 5 phút) | **Gateway heartbeat** (repo này, `INFERENCE_HEARTBEAT_S=15`): câu trả lời chưa có sau 15 giây → gửi ngay header 200 rồi một dấu cách mỗi 15 giây. Đã thử thật: một lượt 325 giây qua ngrok trả 200, JSON hợp lệ |
 | Máy Mac chạy client **ngủ đông** (gập nắp / nút nguồn) | Hai lần chạy dừng ở giữa (socket chết, request treo tới timeout 1800 giây) | Bỏ các lần đó, chạy lại; các lần sau đặt `KNOWHOW_VLM_TIMEOUT_S=120`: nhờ heartbeat, request khoẻ không bao giờ im lặng quá 15 giây, nên timeout 120 giây chỉ cắt kết nối chết và client tự thử lại |
 | **Máy Vast tự khởi động lại** (lúc 02:02 và 12:22, phía host) | ngrok mất kết nối khoảng 2 phút, job đang chạy báo lỗi 404 | Chạy lại; dịch vụ tự bật lại nhờ supervisor |
-| 30B-A3B **lặp khoảng trắng** trong JSON (`\n\n  ` tới hết 16 384 token) | 10/41 câu trả lời hỏng, phải hỏi lại, có đoạn hỏng cả hai lần (8B: 0/180) | `run.sh` thêm `JSON_WHITESPACE=compact` (mặc định): vLLM chỉ cho JSON gọn (`disable_any_whitespace`, backend xgrammar). Hai đoạn từng lặp trả JSON đúng ngay lần đầu |
+| 30B-A3B **lặp khoảng trắng** trong JSON (`\n\n  ` tới hết 16 384 token) | 10/44 câu trả lời của lần chạy bị bỏ hỏng, phải hỏi lại, có đoạn hỏng cả hai lần (8B: 2/242 câu, một ở BF16, một ở FP8 tối ưu) | `run.sh` thêm `JSON_WHITESPACE=compact` (mặc định): vLLM chỉ cho JSON gọn (`disable_any_whitespace`, backend xgrammar). Lần chạy 30B dùng trong báo cáo: 0/63 câu lặp khoảng trắng, nhưng 3/63 câu vẫn chạm hạn mức vì lặp chữ số, phải hỏi lại |
 | 8B Thinking FP8 suy luận hết 16 384 token ở **một** bước đề xuất lý do, vLLM trả `content = null` | Cả job FP8 báo lỗi ở bước lý do (5/14), dù 24 bước nháp đã lưu | MentorMind (spec 04 AC-29): câu trả lời rỗng là câu trả lời không đọc được của riêng bước đó, job chạy tiếp. Danh sách cuối của FP8 không bị ảnh hưởng (lưu trước bước lý do) |
 | Xoá `/venv/main` của template Vast để lấy chỗ trống | Không giải phóng được gì (nằm ở lớp image chỉ đọc); Jupyter của template không còn chạy | `run.sh` dùng `hf`/`python` của venv vLLM. Thuê máy mới để thử nhiều model: chọn đĩa 100 GB |
 
@@ -212,13 +224,18 @@ python3 $B/judge.py metrics scores.json 8b-thinking final verdict_1.json verdict
 python3 $B/overview.py runs.json                                        # bảng ở mục 2 và 3
 ```
 
-Số liệu của báo cáo này (điểm, verdict của giám khảo, `runs.json`) nằm trong `results/`.
+Số liệu của báo cáo này nằm trong `results/`: điểm của từng lần chạy (`score_*.json`, kèm thời gian và token từng
+lượt gọi), verdict của hai giám khảo cho mọi danh sách đã chấm (`verdicts/`, cả lượt A), `runs.json`, và số đo engine
+(`engine/`).
 
 ## 7. Giới hạn
 
 - Một video (3 phút 14 giây), 27 bước đúng; nhãn là bản nháp do Claude gán, chưa có người duyệt.
-- **Mỗi model một lần chạy đầy đủ** (8B Thinking FP8 hai lần). Model sinh có yếu tố ngẫu nhiên (lượt A nhiệt độ > 0):
-  các lượt A độc lập của 8B Thinking cho "tìm ra" từ 0.52 đến 0.59, hai lần chạy FP8 cho danh sách cuối 0.44 và
-  0.56. Chênh lệch nhỏ hơn khoảng 0.1 giữa hai cấu hình chưa đủ để kết luận cấu hình nào hơn.
+- **Mỗi model một danh sách cuối** (8B Thinking FP8 hai). Chỉ Instruct, 30B và FP8 tối ưu chạy đủ cả bước lý do.
+  Model sinh có yếu tố ngẫu nhiên (lượt A nhiệt độ > 0): các lượt A độc lập của 8B Thinking cho "tìm ra" từ 0.52 đến
+  0.59 (lần BF16 đầu tiên `score_8b-thinking-try1.json`, hỏng ở lượt C, và lần FP8). Hai lần chạy FP8 cho danh sách
+  cuối 0.44 và 0.56 (chênh 0.11). Chênh lệch cỡ đó giữa hai cấu hình chưa đủ để kết luận cấu hình nào hơn.
+- Cấu hình JSON khác nhau giữa 30B (gọn) và các lần 8B (khoảng trắng tự do): đây là một khác biệt ngoài model khi so
+  30B với 8B.
 - Giám khảo là một model ngôn ngữ, mù với model nhưng không xem video: chỉ so chữ và thời gian với nhãn.
 - Tốc độ đo trên một RTX A5000 qua ngrok từ Việt Nam; máy khác hoặc gọi trong mạng LAN sẽ khác.

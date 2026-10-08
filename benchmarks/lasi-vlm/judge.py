@@ -57,7 +57,7 @@ def check_verdict(v: dict, n_pred: int) -> None:
 def _mean(values: list[float | None]) -> float | None:
     """Mean over the judges that could judge it; None when none could (not measurable, not 0)."""
     known = [v for v in values if v is not None]
-    return round(sum(known) / len(known), 3) if known else None
+    return sum(known) / len(known) if known else None
 
 
 def metrics(scores_path: str, label: str, which: str, verdicts: list[str]) -> dict:
@@ -95,4 +95,7 @@ if __name__ == "__main__":
     if sys.argv[1] == "render":
         print(render(*sys.argv[2:5]))
     else:
-        print(json.dumps(metrics(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:])))
+        result = metrics(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:])
+        print(
+            json.dumps({k: round(v, 3) if isinstance(v, float) else v for k, v in result.items()})
+        )

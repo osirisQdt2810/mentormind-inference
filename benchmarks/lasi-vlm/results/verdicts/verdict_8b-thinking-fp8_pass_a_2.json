@@ -1,0 +1,264 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 1,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 6,
+   "actor_ok": true,
+   "key_point_ok": true,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": 7,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 8,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 11,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 12,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 12,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": 12,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 16,
+   "match": 14,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 17,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 18,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 19,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 20,
+   "match": 17,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 21,
+   "match": 18,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 22,
+   "match": 19,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 23,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 24,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 25,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 26,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 27,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 28,
+   "match": 21,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 29,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 30,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 31,
+   "match": 22,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 32,
+   "match": 22,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 33,
+   "match": 22,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 34,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 35,
+   "match": 24,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 36,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  }
+ ],
+ "notes": "The run times its steps well against the robot and carton pick-and-place segments (truth 5-10, 15, 20) and the carton erector (6-7), and it gets the hand-placement and engineer-adjustment scenes roughly right, though it splits most cycles into small pick/move/place sub-steps. Its key points are generic positions or directions that almost never repeat the labelled ones (multi-cup gripper, flap guide frame, 2 s cycle), the machine placers are called robots, it labels cups as generic \"linh kiện\", it misses lid capping (13, 26) and cup row gathering (4, 25), and it invents boxing actions at 12-27 s and 139-144 s."
+}
