@@ -179,14 +179,13 @@ request và khi chạy 4 request cùng lúc. Số liệu gốc: `results/engine/
 25 bước nháp, 10 bước có lời chuyên gia, 1 lý do đề xuất), so với khoảng 73 phút khi chạy lần lượt. Lượt A và B mất
 18 phút thay vì 51. Chạy song song và ngram không đổi đầu ra của model; danh sách cuối không kém (dòng "tối ưu" ở mục 2).
 
-Cấu hình đề nghị cho máy chủ của nhóm:
+**Cấu hình đã chọn cho MentorMind** (08/10/2026), giờ là mặc định của `run.sh`: 8B Thinking FP8 + ngram, JSON tự
+do, client 4 request cùng lúc.
 
 ```bash
-VLM_VARIANT=thinking-fp8 \
-SPEC_CONFIG='{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4,"prompt_lookup_min":2}' \
-bash /root/run.sh
+bash /root/run.sh      # = VLM_VARIANT=thinking-fp8 (FP8 + ngram); in ra các dòng .env bên dưới
 # .env của MentorMind: KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Thinking-FP8, KNOWHOW_VLM_MAX_TOKENS=16384,
-# KNOWHOW_LLM_MAX_TOKENS=16384, KNOWHOW_VLM_CONCURRENCY=4
+# KNOWHOW_LLM_MAX_TOKENS=16384, KNOWHOW_VLM_CONCURRENCY=4 (MentorMind có KNOWHOW_VLM_CONCURRENCY từ PR #20)
 ```
 
 ## 5. Sự cố trong lúc đo và cách xử lý
@@ -205,8 +204,8 @@ bash /root/run.sh
 Máy chủ (SSH vào instance Vast), mỗi model một lần:
 
 ```bash
-VLM_VARIANT=thinking-fp8 bash /root/run.sh       # instruct | thinking | thinking-fp8 | 30b-thinking
-JSON_WHITESPACE=any VLM_VARIANT=thinking bash /root/run.sh    # cấu hình đã dùng cho 3 lần chạy 8B
+VLM_VARIANT=thinking bash /root/run.sh       # instruct | thinking | thinking-fp8 (mặc định) | 30b-thinking
+# mỗi bản tự mang thiết lập lúc đo (ngram cho thinking-fp8, JSON gọn cho 30b-thinking); SPEC_CONFIG= tắt ngram
 ```
 
 Máy chạy UI (một checkout `mentormind-knowhow-ai` có `.env` trỏ tới máy chủ):

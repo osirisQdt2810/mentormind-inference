@@ -1,7 +1,7 @@
 #!/bin/bash
 # MentorMind inference server on a Vast.ai PyTorch instance (run as root, after every Start):
 #
-#   vllm      (GPU) Qwen3-VL-8B-Instruct BF16 on 127.0.0.1:18000       supervisor service "vllm"
+#   vllm      (GPU) Qwen3-VL-8B-Thinking FP8 + ngram on 127.0.0.1:18000  supervisor service "vllm"
 #                   (VLM_VARIANT / VLM_MODEL pick another model; SPEC_CONFIG = speculative decoding)
 #   gateway   (CPU) ASR + embeddings + documents, every other /v1/*    supervisor service "gateway"
 #                   proxied to vLLM, on 127.0.0.1:18080
@@ -23,27 +23,33 @@ set -euo pipefail
 
 main() { # parsed whole before it runs: updating the clone cannot change the script mid-run
 
-# The VLM: VLM_MODEL = any Hugging Face id vLLM can serve, or VLM_VARIANT = one of the preset ones
-# (benchmarks/lasi-vlm/README.md). A *Thinking* model gets the qwen3 reasoning parser (it moves
-# <think>…</think> out of the answer; structured output applies after it) and a 16k answer budget.
-VLM_VARIANT=${VLM_VARIANT:-instruct}
+# The VLM: VLM_VARIANT = one of the configurations measured on the LASI video (benchmarks/lasi-vlm/README.md),
+# or VLM_MODEL = any Hugging Face id vLLM can serve. Each preset brings its measured server settings; the
+# default thinking-fp8 is the one chosen for MentorMind: Qwen3-VL-8B-Thinking FP8 + ngram speculative
+# decoding, with clients at KNOWHOW_VLM_CONCURRENCY=4 (a LASI video job in 23 min). A *Thinking* model gets
+# the qwen3 reasoning parser (it moves <think>…</think> out of the answer; structured output applies after
+# it) and a 16k answer budget. SPEC_CONFIG / JSON_WHITESPACE override a preset (SPEC_CONFIG='' = none).
+NGRAM='{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4,"prompt_lookup_min":2}'
+VLM_VARIANT=${VLM_VARIANT:-thinking-fp8}
 case "$VLM_VARIANT" in
-  instruct)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Instruct" ;;
-  thinking)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking" ;;
-  thinking-fp8) DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking-FP8" ;;
-  30b-thinking) DEFAULT_MODEL="QuantTrio/Qwen3-VL-30B-A3B-Thinking-AWQ" ;;
+  instruct)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Instruct"               DEFAULT_SPEC=""       DEFAULT_WHITESPACE=any ;;
+  thinking)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking"               DEFAULT_SPEC=""       DEFAULT_WHITESPACE=any ;;
+  thinking-fp8) DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking-FP8"           DEFAULT_SPEC="$NGRAM" DEFAULT_WHITESPACE=any ;;
+  30b-thinking) DEFAULT_MODEL="QuantTrio/Qwen3-VL-30B-A3B-Thinking-AWQ" DEFAULT_SPEC=""       DEFAULT_WHITESPACE=compact ;;
   *) echo "VLM_VARIANT=$VLM_VARIANT: instruct | thinking | thinking-fp8 | 30b-thinking (or set VLM_MODEL)" >&2; exit 1 ;;
 esac
+if [ -n "${VLM_MODEL:-}" ]; then DEFAULT_SPEC="" DEFAULT_WHITESPACE=compact; fi  # an unmeasured model: plain, safe JSON
 MODEL=${VLM_MODEL:-$DEFAULT_MODEL}
 case "$MODEL" in
   *Thinking*) REASONING=1 ANSWER_TOKENS=16384 ;;
   *)          REASONING=0 ANSWER_TOKENS=8192 ;;
 esac
-SPEC_CONFIG=${SPEC_CONFIG:-}       # vLLM --speculative-config JSON, e.g. {"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}
+SPEC_CONFIG=${SPEC_CONFIG-$DEFAULT_SPEC}   # vLLM --speculative-config JSON; set but empty = no speculative decoding
 # compact = JSON answers without optional whitespace (structured outputs disable_any_whitespace): with
 # the free whitespace the JSON grammar allows, Qwen3-VL-30B-A3B looped on "\n\n  " up to max_tokens in
-# 10 of 44 LASI answers (8B: 2 of 242). any = vLLM's default.
-JSON_WHITESPACE=${JSON_WHITESPACE:-compact}
+# 10 of 44 LASI answers (8B: 2 of 242, retried once by MentorMind). any = vLLM's default.
+JSON_WHITESPACE=${JSON_WHITESPACE:-$DEFAULT_WHITESPACE}
+CLIENT_CONCURRENCY=${CLIENT_CONCURRENCY:-4}   # printed as KNOWHOW_VLM_CONCURRENCY: vLLM batches a job's requests
 case "$JSON_WHITESPACE" in compact|any) ;; *) echo "JSON_WHITESPACE=$JSON_WHITESPACE: compact | any" >&2; exit 1 ;; esac
 VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt
 CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, default requirements/gateway-linux-cpu.txt
@@ -383,6 +389,7 @@ KNOWHOW_VLM_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_VLM_MAX_FRAMES=40
 KNOWHOW_VLM_MAX_TOKENS=$ANSWER_TOKENS
 KNOWHOW_LLM_MAX_TOKENS=$ANSWER_TOKENS
+KNOWHOW_VLM_CONCURRENCY=$CLIENT_CONCURRENCY
 KNOWHOW_INFERENCE_URL=$URL/v1
 KNOWHOW_INFERENCE_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_ASR_PROVIDER=remote
