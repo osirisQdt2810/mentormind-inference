@@ -75,7 +75,7 @@ def wants_heartbeat(method: str, path: str, body: bytes, heartbeat_s: float) -> 
         return False
     try:
         payload = json.loads(body)
-    except ValueError:
+    except (ValueError, RecursionError):  # very deep nesting: forward as is, the upstream answers
         return False
     return isinstance(payload, dict) and not payload.get("stream")
 

@@ -240,3 +240,16 @@ def test_upstream_lost_during_the_heartbeat_ends_with_an_error_json() -> None:
     res = chat(client)
     assert res.status_code == 200
     assert "unreachable" in res.json()["error"]
+
+
+def test_a_body_too_deep_to_parse_is_forwarded_as_before() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return upstream_json(400, {"error": "bad json"})
+
+    client = proxy_client(handler, heartbeat_s=15)
+    res = client.post("/v1/chat/completions", content=b"[" * 100_000, headers={"Content-Type": "application/json"})
+    assert res.status_code == 400 and res.json() == {"error": "bad json"}
+    assert len(seen) == 1

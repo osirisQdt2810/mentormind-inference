@@ -23,7 +23,7 @@ set -euo pipefail
 
 main() { # parsed whole before it runs: updating the clone cannot change the script mid-run
 
-# The VLM: VLM_MODEL = any Hugging Face id vLLM can serve, or VLM_VARIANT = one of the measured ones
+# The VLM: VLM_MODEL = any Hugging Face id vLLM can serve, or VLM_VARIANT = one of the preset ones
 # (benchmarks/lasi-vlm/README.md). A *Thinking* model gets the qwen3 reasoning parser (it moves
 # <think>…</think> out of the answer; structured output applies after it) and a 16k answer budget.
 VLM_VARIANT=${VLM_VARIANT:-instruct}

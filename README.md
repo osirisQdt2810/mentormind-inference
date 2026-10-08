@@ -181,7 +181,8 @@ Các bước:
    khi file đến từ biến này. Máy không có NVIDIA thì script dừng (vLLM ROCm lấy từ image của AMD, không qua script này).
 3. Venv vLLM `/opt/vllm`: `uv venv` rồi `uv pip install -r requirements/vllm-linux-cuda.txt --torch-backend=auto`
    (hiện tiến trình của uv, khoảng 5 phút trên máy mới).
-   Tải `Qwen/Qwen3-VL-8B-Instruct` (17 GB, một lần).
+   Tải model VLM đã chọn (`VLM_VARIANT`/`VLM_MODEL`, mặc định `Qwen/Qwen3-VL-8B-Instruct`, 17 GB) bằng `hf` của chính venv
+   này, một lần cho mỗi model (không cần venv `/venv/main` của template).
 4. Venv CPU của gateway `/opt/inference-cpu`: `uv pip install -r requirements/gateway-linux-cpu.txt --torch-backend=cpu`.
    Mỗi venv chỉ cài lại khi chưa có, hoặc khi dòng requirement trong file **hay trong file nó nạp bằng `-r`**
    (`gateway-common.txt`) đổi: hash của các dòng đó lưu trong `<venv>/.requirements` cùng tên file và cờ uv. Hash bỏ
@@ -204,6 +205,7 @@ KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
 KNOWHOW_VLM_API_KEY=<token>
 KNOWHOW_VLM_MAX_FRAMES=40
 KNOWHOW_VLM_MAX_TOKENS=8192
+KNOWHOW_LLM_MAX_TOKENS=8192
 KNOWHOW_INFERENCE_URL=https://<domain>/v1
 KNOWHOW_INFERENCE_API_KEY=<token>
 KNOWHOW_ASR_PROVIDER=remote
@@ -214,7 +216,7 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | Biến của script | Mặc định | Ý nghĩa |
 |---|---|---|
 | `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
-| `VLM_VARIANT` | `instruct` | Model đã đo trên LASI (`benchmarks/lasi-vlm/README.md`): `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit). Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra |
+| `VLM_VARIANT` | `instruct` | Model định sẵn: `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit); so sánh trên video LASI ở `benchmarks/lasi-vlm/README.md`. Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra. Mỗi lần chạy `run.sh` phải đặt lại biến này (không đặt = `instruct`) |
 | `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT` |
 | `SPEC_CONFIG` | (không) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}` |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
