@@ -42,7 +42,7 @@ esac
 SPEC_CONFIG=${SPEC_CONFIG:-}       # vLLM --speculative-config JSON, e.g. {"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}
 # compact = JSON answers without optional whitespace (structured outputs disable_any_whitespace): with
 # the free whitespace the JSON grammar allows, Qwen3-VL-30B-A3B looped on "\n\n  " up to max_tokens in
-# 10 of 41 LASI answers (8B: 0 of 180). any = vLLM's default.
+# 10 of 44 LASI answers (8B: 2 of 242). any = vLLM's default.
 JSON_WHITESPACE=${JSON_WHITESPACE:-compact}
 case "$JSON_WHITESPACE" in compact|any) ;; *) echo "JSON_WHITESPACE=$JSON_WHITESPACE: compact | any" >&2; exit 1 ;; esac
 VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt

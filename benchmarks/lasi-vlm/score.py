@@ -111,6 +111,8 @@ def latency_stats(folder: Path) -> dict:
     lat = [r["response"].get("latency_s", 0.0) for r in recs]
     out = [(r["response"].get("usage") or {}).get("completion_tokens", 0) for r in recs]
     return {
+        "latencies_s": [round(x, 2) for x in lat],
+        "out_tokens": out,
         "calls": len(recs),
         "median_s": round(median(lat), 1) if lat else None,
         "mean_s": round(sum(lat) / len(lat), 1) if lat else None,

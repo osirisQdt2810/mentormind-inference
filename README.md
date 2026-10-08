@@ -218,7 +218,7 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
 | `VLM_VARIANT` | `instruct` | Model định sẵn: `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit); so sánh trên video LASI ở `benchmarks/lasi-vlm/README.md`. Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra. Mỗi lần chạy `run.sh` phải đặt lại biến này (không đặt = `instruct`) |
 | `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT` |
-| `JSON_WHITESPACE` | `compact` | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/41 câu trả lời trên LASI (8B: 0/180). `any` = mặc định của vLLM |
+| `JSON_WHITESPACE` | `compact` | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/44 câu trả lời trên LASI (8B: 2/242). `any` = mặc định của vLLM |
 | `SPEC_CONFIG` | (không) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}` |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
