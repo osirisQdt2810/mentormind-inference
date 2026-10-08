@@ -26,7 +26,9 @@ VLM có hai backend (`VLM_SERVER_BACKEND`):
   - Docker: `docker/Dockerfile.ollama`.
   - Ollama tự ép mỗi ảnh Qwen-VL tốn tối thiểu 1024 token. `scripts/ollama/llama-server-wrapper.sh` đổi được mức này qua `VLM_SERVER_IMAGE_MIN_TOKENS` (mặc định 512; quét trên video LASI ngày 4/10, mức này cho chất lượng ngang bản BF16 và ít hơn 1024 khoảng 29% token).
 - **`vllm`**: Qwen3-VL-8B-Instruct BF16 trên vLLM, đúng 1 GPU NVIDIA hoặc AMD, cổng 8100 (mục 3 đến 5). Bản deploy
-  trên Vast.ai (mục 2) dùng backend này, cổng 18000, phía sau gateway.
+  trên Vast.ai (mục 2) dùng backend này, cổng 18000, phía sau gateway, mặc định với **Qwen3-VL-8B-Thinking FP8 +
+  speculative decoding ngram**: cấu hình đã chọn cho MentorMind sau khi so sánh trên video LASI
+  (`benchmarks/lasi-vlm/README.md`).
 
 | Thư mục | Nhiệm vụ |
 |---|---|
@@ -181,7 +183,7 @@ Các bước:
    khi file đến từ biến này. Máy không có NVIDIA thì script dừng (vLLM ROCm lấy từ image của AMD, không qua script này).
 3. Venv vLLM `/opt/vllm`: `uv venv` rồi `uv pip install -r requirements/vllm-linux-cuda.txt --torch-backend=auto`
    (hiện tiến trình của uv, khoảng 5 phút trên máy mới).
-   Tải model VLM đã chọn (`VLM_VARIANT`/`VLM_MODEL`, mặc định `Qwen/Qwen3-VL-8B-Instruct`, 17 GB) bằng `hf` của chính venv
+   Tải model VLM đã chọn (`VLM_VARIANT`/`VLM_MODEL`, mặc định `Qwen/Qwen3-VL-8B-Thinking-FP8`, 10.6 GB) bằng `hf` của chính venv
    này, một lần cho mỗi model (không cần venv `/venv/main` của template).
 4. Venv CPU của gateway `/opt/inference-cpu`: `uv pip install -r requirements/gateway-linux-cpu.txt --torch-backend=cpu`.
    Mỗi venv chỉ cài lại khi chưa có, hoặc khi dòng requirement trong file **hay trong file nó nạp bằng `-r`**
@@ -201,11 +203,12 @@ Các bước:
 
 ```
 KNOWHOW_VLM_BASE_URL=https://<domain>/v1
-KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
+KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Thinking-FP8
 KNOWHOW_VLM_API_KEY=<token>
 KNOWHOW_VLM_MAX_FRAMES=40
-KNOWHOW_VLM_MAX_TOKENS=8192
-KNOWHOW_LLM_MAX_TOKENS=8192
+KNOWHOW_VLM_MAX_TOKENS=16384
+KNOWHOW_LLM_MAX_TOKENS=16384
+KNOWHOW_VLM_CONCURRENCY=4
 KNOWHOW_INFERENCE_URL=https://<domain>/v1
 KNOWHOW_INFERENCE_API_KEY=<token>
 KNOWHOW_ASR_PROVIDER=remote
@@ -216,10 +219,11 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | Biến của script | Mặc định | Ý nghĩa |
 |---|---|---|
 | `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
-| `VLM_VARIANT` | `instruct` | Model định sẵn: `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit); so sánh trên video LASI ở `benchmarks/lasi-vlm/README.md`. Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra. Mỗi lần chạy `run.sh` phải đặt lại biến này (không đặt = `instruct`) |
-| `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT` |
-| `JSON_WHITESPACE` | `compact` | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/44 câu trả lời trên LASI (8B: 2/242). `any` = mặc định của vLLM |
-| `SPEC_CONFIG` | (không) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}` |
+| `VLM_VARIANT` | `thinking-fp8` | Cấu hình đã đo trên video LASI (`benchmarks/lasi-vlm/README.md`), mỗi bản mang đúng thiết lập máy chủ lúc đo: `thinking-fp8` (8B FP8 + ngram, JSON tự do; **bản đã chọn**, job LASI 23 phút với client `KNOWHOW_VLM_CONCURRENCY=4`), `instruct` (8B BF16), `thinking` (8B BF16), `30b-thinking` (30B-A3B AWQ 4-bit, JSON gọn). Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi bản thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra |
+| `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT`, khi đó mặc định không speculative decoding và JSON gọn |
+| `SPEC_CONFIG` | theo bản (`thinking-fp8`: ngram) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4,"prompt_lookup_min":2}`; đặt rỗng (`SPEC_CONFIG=`) = không dùng |
+| `JSON_WHITESPACE` | theo bản (`30b-thinking`: `compact`, còn lại `any`) | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs, backend xgrammar): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/44 câu trả lời trên LASI (8B: 2/242, MentorMind hỏi lại một lần). `any` = mặc định của vLLM |
+| `CLIENT_CONCURRENCY` | `4` | In ra thành `KNOWHOW_VLM_CONCURRENCY` (MentorMind gửi chừng ấy request cùng lúc; vLLM gộp lại) |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
 | `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |
