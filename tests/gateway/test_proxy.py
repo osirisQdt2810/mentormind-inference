@@ -250,6 +250,8 @@ def test_a_body_too_deep_to_parse_is_forwarded_as_before() -> None:
         return upstream_json(400, {"error": "bad json"})
 
     client = proxy_client(handler, heartbeat_s=15)
-    res = client.post("/v1/chat/completions", content=b"[" * 100_000, headers={"Content-Type": "application/json"})
+    res = client.post(
+        "/v1/chat/completions", content=b"[" * 100_000, headers={"Content-Type": "application/json"}
+    )
     assert res.status_code == 400 and res.json() == {"error": "bad json"}
     assert len(seen) == 1
