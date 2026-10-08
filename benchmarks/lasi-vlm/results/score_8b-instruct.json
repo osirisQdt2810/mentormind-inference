@@ -1,0 +1,660 @@
+{
+ "8b-instruct": {
+  "pass_a": {
+   "fps": 4.0,
+   "recall": 0.074,
+   "precision": 0.091,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 251553,
+   "latency_s": 189.74,
+   "fps_effective": 7.22,
+   "predicted": 22,
+   "truth": 27,
+   "recall_essential": 0.125,
+   "recall_time_only": 0.815,
+   "actor_accuracy": 0.682,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Đặt cốc sản phẩm lên băng tải theo vị trí cố định",
+     "pred": "Đặt sản phẩm vào vị trí trên băng tải",
+     "score": 86
+    },
+    {
+     "truth": "Nhặt cốc sản phẩm khỏi băng tải",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 94
+    }
+   ]
+  },
+  "pass_a_steps": [
+   {
+    "t": [
+     32.51,
+     33.31
+    ],
+    "step": "Nhặt linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "Robot di chuyển cánh tay xuống để nhặt linh kiện từ phía sau khung hộp."
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào khung hộp",
+    "actor": "robot",
+    "key_point": "Robot đưa linh kiện xuống và đặt vào vị trí trung tâm của khung hộp."
+   },
+   {
+    "t": [
+     51.13,
+     51.93
+    ],
+    "step": "Đặt hộp vào vị trí trên băng tải",
+    "actor": "machine",
+    "key_point": null
+   },
+   {
+    "t": [
+     51.93,
+     53.13
+    ],
+    "step": "Xoay hộp",
+    "actor": "machine",
+    "key_point": null
+   },
+   {
+    "t": [
+     53.13,
+     55.74
+    ],
+    "step": "Đặt hộp xuống băng tải",
+    "actor": "machine",
+    "key_point": null
+   },
+   {
+    "t": [
+     55.74,
+     58.24
+    ],
+    "step": "Di chuyển đầu gắp của robot",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     58.24,
+     60.31
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     72.55,
+     84.03
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     87.03,
+     87.33
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     87.33,
+     92.64
+    ],
+    "step": "Đặt sản phẩm vào vị trí trên băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     92.64,
+     98.85
+    ],
+    "step": "Di chuyển đầu gắp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     110.29,
+     116.93
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     116.93,
+     118.33
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     118.33,
+     123.6
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     130.75,
+     132.55
+    ],
+    "step": "Lấy sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     132.55,
+     134.45
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     134.45,
+     135.75
+    ],
+    "step": "Hạ tay khỏi mặt",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     135.75,
+     138.85
+    ],
+    "step": "Đưa tay vào máy",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     138.85,
+     139.25
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     139.25,
+     144.12
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.15,
+     164.95
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.95,
+     171.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": null
+   }
+  ],
+  "pass_b_run": {
+   "fps": 4.0,
+   "recall": 0.074,
+   "precision": 0.091,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 251482,
+   "latency_s": 187.27,
+   "fps_effective": 7.16,
+   "predicted": 22,
+   "truth": 27,
+   "recall_essential": 0.125,
+   "recall_time_only": 0.815,
+   "actor_accuracy": 0.636,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Đặt cốc sản phẩm lên băng tải theo vị trí cố định",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 81
+    },
+    {
+     "truth": "Nhặt cốc sản phẩm khỏi băng tải",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 94
+    }
+   ]
+  },
+  "pass_b_run_steps": [
+   {
+    "t": [
+     32.51,
+     33.31
+    ],
+    "step": "Nhặt linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "Robot SCARA di chuyển cánh tay xuống để nhặt linh kiện từ phía sau khung hộp."
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào khung hộp",
+    "actor": "robot",
+    "key_point": "Robot SCARA đưa linh kiện xuống và đặt vào vị trí trống trong khung hộp ở phía trước."
+   },
+   {
+    "t": [
+     51.13,
+     53.63
+    ],
+    "step": "Xoay hộp",
+    "actor": "robot",
+    "key_point": "Hộp bị xoay từ vị trí đứng thẳng sang nằm ngang."
+   },
+   {
+    "t": [
+     53.63,
+     55.74
+    ],
+    "step": "Đặt hộp vào vị trí",
+    "actor": "robot",
+    "key_point": "Hộp được đặt xuống một vị trí trên băng tải."
+   },
+   {
+    "t": [
+     55.74,
+     57.24
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     57.24,
+     60.31
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     72.55,
+     73.95
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     73.95,
+     84.03
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     84.03,
+     84.83
+    ],
+    "step": "Nhặt linh kiện từ khay",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     84.83,
+     87.03
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     87.03,
+     92.64
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     92.64,
+     98.85
+    ],
+    "step": "Di chuyển đầu gắp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     110.29,
+     116.93
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     116.93,
+     118.33
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     118.33,
+     123.6
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     130.75,
+     132.55
+    ],
+    "step": "Lấy sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     132.55,
+     134.45
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     134.45,
+     135.25
+    ],
+    "step": "Hạ tay khỏi mặt",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     135.25,
+     138.85
+    ],
+    "step": "Đưa tay ra phía trước",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     138.85,
+     144.12
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.15,
+     164.65
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.65,
+     171.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": null
+   }
+  ],
+  "final": {
+   "fps": 4.0,
+   "recall": 0.074,
+   "precision": 0.125,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 503035,
+   "latency_s": 377.01,
+   "fps_effective": 7.18,
+   "predicted": 16,
+   "truth": 27,
+   "recall_essential": 0.125,
+   "recall_time_only": 0.778,
+   "actor_accuracy": 0.632,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Đặt cốc sản phẩm lên băng tải theo vị trí cố định",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 81
+    },
+    {
+     "truth": "Nhặt cốc sản phẩm khỏi băng tải",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 94
+    }
+   ]
+  },
+  "final_steps": [
+   {
+    "t": [
+     32.51,
+     33.31
+    ],
+    "step": "Nhặt linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "Robot di chuyển cánh tay xuống để nhặt linh kiện từ phía sau khung hộp."
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào khung hộp",
+    "actor": "robot",
+    "key_point": "Robot đưa linh kiện xuống và đặt vào vị trí trung tâm của khung hộp."
+   },
+   {
+    "t": [
+     51.93,
+     53.13
+    ],
+    "step": "Xoay hộp",
+    "actor": null,
+    "key_point": null
+   },
+   {
+    "t": [
+     58.24,
+     60.31
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     72.55,
+     84.03
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     87.03,
+     87.33
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     92.64,
+     98.85
+    ],
+    "step": "Di chuyển đầu gắp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     110.29,
+     116.93
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     116.93,
+     118.33
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     118.33,
+     123.6
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     130.75,
+     132.55
+    ],
+    "step": "Lấy sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     132.55,
+     134.45
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     134.45,
+     135.75
+    ],
+    "step": "Hạ tay khỏi mặt",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     138.85,
+     139.25
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.15,
+     164.95
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     164.95,
+     171.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": null
+   }
+  ],
+  "latency_pass_a": {
+   "calls": 30,
+   "median_s": 4.2,
+   "mean_s": 6.3,
+   "total_s": 190,
+   "out_tokens_median": 61,
+   "out_tok_per_s": 18.1
+  },
+  "latency_pass_b": {
+   "calls": 30,
+   "median_s": 5.5,
+   "mean_s": 6.2,
+   "total_s": 187,
+   "out_tokens_median": 50,
+   "out_tok_per_s": 18.0
+  },
+  "segments": 30
+ }
+}

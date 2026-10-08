@@ -55,7 +55,7 @@ Base URL của client là `<URL public>/v1`. Tên trường và cấu trúc dư�
 | `POST /v1/audio/transcriptions` | multipart: `file` (audio; nên là WAV 16 kHz mono, file nào ffmpeg đọc được cũng nhận); `language` tùy chọn (trống, thiếu hoặc `auto` = tự nhận); `model` tùy chọn; `response_format` chỉ nhận `verbose_json` (mặc định); `timestamp_granularities[]` bị bỏ qua (luôn có words) | `{"text","language","duration","segments":[{"id","start","end","text","words":[…]}],"words":[{"word","start","end","probability"}]}` |
 | `POST /v1/embeddings` | JSON `{"model": tùy chọn, "input": str \| [str]}` | `{"object":"list","model":"BAAI/bge-m3","data":[{"object":"embedding","index":i,"embedding":[…]}],"usage":{"prompt_tokens":n,"total_tokens":n}}` |
 | `POST /v1/documents/convert` | multipart: `file` (`.pdf`, `.docx`, `.xlsx`, `.pptx`) | `{"filename","num_pages","document": <DoclingDocument.export_to_dict()>}` |
-| `GET /v1/models`, `POST /v1/chat/completions` và mọi `/v1/*` khác | nguyên văn | proxy sang `INFERENCE_VLM_UPSTREAM`: giữ method, query, body, header (bỏ header hop-by-hop và `Host`), trả lại nguyên status, header và body; `"stream": true` (SSE) được chuyển tiếp theo từng chunk |
+| `GET /v1/models`, `POST /v1/chat/completions` và mọi `/v1/*` khác | nguyên văn | proxy sang `INFERENCE_VLM_UPSTREAM`: giữ method, query, body, header (bỏ header hop-by-hop và `Host`), trả lại nguyên status, header và body; `"stream": true` (SSE) được chuyển tiếp theo từng chunk; câu trả lời không stream chậm hơn `INFERENCE_HEARTBEAT_S` thì có heartbeat (bảng dưới) |
 
 | Lỗi | Khi nào |
 |---|---|
@@ -85,6 +85,7 @@ Chi tiết cần giữ đúng:
 | `INFERENCE_HOST` / `INFERENCE_PORT` | `127.0.0.1` / `18080` | Địa chỉ nghe |
 | `INFERENCE_VLM_UPSTREAM` | `http://127.0.0.1:18000` | VLM nhận các `/v1/*` còn lại |
 | `INFERENCE_PROXY_TIMEOUT_S` | `1800` | Thời gian chờ tối đa một request proxy |
+| `INFERENCE_HEARTBEAT_S` | `15` | `POST /v1/chat/completions` không stream mà chưa có câu trả lời sau chừng này giây: gateway gửi ngay header 200 JSON rồi một dấu cách sau mỗi chừng ấy giây tới khi có JSON (JSON bỏ qua khoảng trắng đầu). ngrok free trả 503 cho response im lặng khoảng 5 phút, mà model Thinking hay bước gộp có thể sinh lâu hơn. Lỗi upstream đến sau lúc đó vẫn mang body lỗi nhưng status 200 (header `X-Gateway-Heartbeat`). `0` = tắt |
 | `INFERENCE_ASR_MODEL` | `small` | Model faster-whisper (`small` = `Systran/faster-whisper-small`) |
 | `INFERENCE_ASR_DEVICE` / `INFERENCE_ASR_COMPUTE_TYPE` | `cpu` / `int8` | |
 | `INFERENCE_ASR_BEAM_SIZE` / `INFERENCE_ASR_VAD` | `5` / `true` | |
@@ -180,7 +181,8 @@ Các bước:
    khi file đến từ biến này. Máy không có NVIDIA thì script dừng (vLLM ROCm lấy từ image của AMD, không qua script này).
 3. Venv vLLM `/opt/vllm`: `uv venv` rồi `uv pip install -r requirements/vllm-linux-cuda.txt --torch-backend=auto`
    (hiện tiến trình của uv, khoảng 5 phút trên máy mới).
-   Tải `Qwen/Qwen3-VL-8B-Instruct` (17 GB, một lần).
+   Tải model VLM đã chọn (`VLM_VARIANT`/`VLM_MODEL`, mặc định `Qwen/Qwen3-VL-8B-Instruct`, 17 GB) bằng `hf` của chính venv
+   này, một lần cho mỗi model (không cần venv `/venv/main` của template).
 4. Venv CPU của gateway `/opt/inference-cpu`: `uv pip install -r requirements/gateway-linux-cpu.txt --torch-backend=cpu`.
    Mỗi venv chỉ cài lại khi chưa có, hoặc khi dòng requirement trong file **hay trong file nó nạp bằng `-r`**
    (`gateway-common.txt`) đổi: hash của các dòng đó lưu trong `<venv>/.requirements` cùng tên file và cờ uv. Hash bỏ
@@ -203,6 +205,7 @@ KNOWHOW_VLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
 KNOWHOW_VLM_API_KEY=<token>
 KNOWHOW_VLM_MAX_FRAMES=40
 KNOWHOW_VLM_MAX_TOKENS=8192
+KNOWHOW_LLM_MAX_TOKENS=8192
 KNOWHOW_INFERENCE_URL=https://<domain>/v1
 KNOWHOW_INFERENCE_API_KEY=<token>
 KNOWHOW_ASR_PROVIDER=remote
@@ -213,6 +216,10 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | Biến của script | Mặc định | Ý nghĩa |
 |---|---|---|
 | `ENGINE_REF` | `main` | Nhánh, tag hoặc commit của repo này |
+| `VLM_VARIANT` | `instruct` | Model định sẵn: `instruct` (8B BF16), `thinking` (8B BF16), `thinking-fp8` (8B FP8), `30b-thinking` (30B-A3B AWQ 4-bit); so sánh trên video LASI ở `benchmarks/lasi-vlm/README.md`. Model *Thinking* tự thêm `--reasoning-parser qwen3` và in `KNOWHOW_VLM_MAX_TOKENS`/`KNOWHOW_LLM_MAX_TOKENS=16384`. Đổi model thì đổi `KNOWHOW_VLM_MODEL` ở client theo dòng script in ra. Mỗi lần chạy `run.sh` phải đặt lại biến này (không đặt = `instruct`) |
+| `VLM_MODEL` | (theo `VLM_VARIANT`) | Id Hugging Face bất kỳ vLLM chạy được; thắng `VLM_VARIANT` |
+| `JSON_WHITESPACE` | `compact` | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/41 câu trả lời trên LASI (8B: 0/180). `any` = mặc định của vLLM |
+| `SPEC_CONFIG` | (không) | JSON `--speculative-config` của vLLM, vd. `{"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}` |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
 | `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |

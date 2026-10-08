@@ -1,0 +1,1045 @@
+{
+ "8b-thinking-fp8": {
+  "pass_a": {
+   "fps": 4.0,
+   "recall": 0.185,
+   "precision": 0.135,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 340270,
+   "latency_s": 1551.4,
+   "fps_effective": 6.73,
+   "predicted": 37,
+   "truth": 27,
+   "recall_essential": 0.25,
+   "recall_time_only": 1.0,
+   "actor_accuracy": 0.704,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Dồn các cốc sản phẩm thành hàng trên băng tải",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 81
+    },
+    {
+     "truth": "Nhặt và sắp sản phẩm tại bàn đóng gói",
+     "pred": "Nhặt sản phẩm từ bàn",
+     "score": 92
+    },
+    {
+     "truth": "Lấy sản phẩm từ sọt nhựa xanh đặt lên băng tải",
+     "pred": "Đặt sản phẩm vào hộp",
+     "score": 75
+    },
+    {
+     "truth": "Đẩy khay thực phẩm vào máy dán màng",
+     "pred": "Đặt sản phẩm vào khay",
+     "score": 76
+    },
+    {
+     "truth": "Nhặt cốc sản phẩm khỏi băng tải",
+     "pred": "Nhặt sản phẩm từ băng tải",
+     "score": 94
+    }
+   ]
+  },
+  "pass_a_steps": [
+   {
+    "t": [
+     12.49,
+     26.81
+    ],
+    "step": "Di chuyển sản phẩm từ băng tải vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí sản phẩm trên băng tải"
+   },
+   {
+    "t": [
+     26.81,
+     32.51
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": "vị trí trên băng tải"
+   },
+   {
+    "t": [
+     32.51,
+     33.31
+    ],
+    "step": "Gắp linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "từ vị trí nguồn"
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào hộp đựng",
+    "actor": "robot",
+    "key_point": "vào hộp đựng"
+   },
+   {
+    "t": [
+     51.13,
+     52.93
+    ],
+    "step": "Xoay hộp",
+    "actor": "machine",
+    "key_point": "Hướng của hộp thay đổi từ thẳng đứng sang nghiêng, góc xoay tăng dần"
+   },
+   {
+    "t": [
+     52.93,
+     55.74
+    ],
+    "step": "Di chuyển hộp",
+    "actor": "machine",
+    "key_point": "Vị trí của hộp thay đổi theo băng tải, di chuyển liên tục"
+   },
+   {
+    "t": [
+     55.74,
+     56.54
+    ],
+    "step": "Kẹp linh kiện từ khu vực làm việc",
+    "actor": "robot",
+    "key_point": "vị trí trên bề mặt làm việc"
+   },
+   {
+    "t": [
+     56.54,
+     57.04
+    ],
+    "step": "Di chuyển linh kiện đến hộp",
+    "actor": "robot",
+    "key_point": "hướng về phía hộp"
+   },
+   {
+    "t": [
+     57.04,
+     60.31
+    ],
+    "step": "Thả linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vào hộp mở"
+   },
+   {
+    "t": [
+     67.15,
+     72.55
+    ],
+    "step": "Nhặt sản phẩm từ bàn",
+    "actor": "human",
+    "key_point": "hướng xuống bàn"
+   },
+   {
+    "t": [
+     67.15,
+     72.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": "hướng lên hộp"
+   },
+   {
+    "t": [
+     72.55,
+     73.35
+    ],
+    "step": "Gắp sản phẩm từ nguồn",
+    "actor": "robot",
+    "key_point": "hướng di chuyển từ trái sang phải"
+   },
+   {
+    "t": [
+     73.35,
+     84.03
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí hộp ở trung tâm"
+   },
+   {
+    "t": [
+     84.03,
+     84.43
+    ],
+    "step": "Nhặt linh kiện từ thùng",
+    "actor": "human",
+    "key_point": "từ thùng đỏ và xanh"
+   },
+   {
+    "t": [
+     84.43,
+     87.03
+    ],
+    "step": "Đặt linh kiện vào thùng",
+    "actor": "human",
+    "key_point": "vào thùng chứa ngang hàng"
+   },
+   {
+    "t": [
+     87.03,
+     87.83
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "human",
+    "key_point": "hướng thẳng đứng, vị trí trên băng tải"
+   },
+   {
+    "t": [
+     87.83,
+     92.64
+    ],
+    "step": "Đặt linh kiện vào vị trí chuẩn",
+    "actor": "human",
+    "key_point": "hướng ngang, vị trí trên khay xanh"
+   },
+   {
+    "t": [
+     92.64,
+     93.64
+    ],
+    "step": "Gắp linh kiện từ khay",
+    "actor": "robot",
+    "key_point": "hướng di chuyển xuống khay"
+   },
+   {
+    "t": [
+     93.64,
+     93.94
+    ],
+    "step": "Di chuyển đến vị trí đặt",
+    "actor": "robot",
+    "key_point": "hướng di chuyển sang hộp"
+   },
+   {
+    "t": [
+     93.94,
+     98.85
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí trong hộp"
+   },
+   {
+    "t": [
+     110.29,
+     115.89
+    ],
+    "step": "Đặt sản phẩm vào khay",
+    "actor": "human",
+    "key_point": "sắp xếp theo hàng ngang, vị trí trên khay"
+   },
+   {
+    "t": [
+     115.89,
+     116.93
+    ],
+    "step": "Di chuyển khay trên băng chuyền",
+    "actor": "human",
+    "key_point": "khay di chuyển theo hướng từ trái sang phải"
+   },
+   {
+    "t": [
+     115.89,
+     116.93
+    ],
+    "step": "Máy đổ nguyên liệu vào khay",
+    "actor": "machine",
+    "key_point": "đầu gắp phun nguyên liệu vào khay theo thứ tự"
+   },
+   {
+    "t": [
+     116.93,
+     117.23
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": "băng tải ở bên trái"
+   },
+   {
+    "t": [
+     117.23,
+     117.73
+    ],
+    "step": "Di chuyển đến hộp",
+    "actor": "robot",
+    "key_point": "hướng sang phải"
+   },
+   {
+    "t": [
+     117.73,
+     123.6
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí hộp ở bên phải"
+   },
+   {
+    "t": [
+     130.75,
+     132.55
+    ],
+    "step": "Nhặt linh kiện",
+    "actor": "robot",
+    "key_point": "gripper đóng khi tiếp xúc với linh kiện"
+   },
+   {
+    "t": [
+     132.55,
+     133.15
+    ],
+    "step": "Đặt linh kiện",
+    "actor": "robot",
+    "key_point": "gripper mở sau khi đặt linh kiện"
+   },
+   {
+    "t": [
+     133.15,
+     134.45
+    ],
+    "step": "Di chuyển về vị trí ban đầu",
+    "actor": "robot",
+    "key_point": "cánh tay robot thu hồi"
+   },
+   {
+    "t": [
+     134.45,
+     134.95
+    ],
+    "step": "Điều chỉnh mũ bảo hộ",
+    "actor": "human",
+    "key_point": "bàn tay che mặt"
+   },
+   {
+    "t": [
+     134.95,
+     135.55
+    ],
+    "step": "Kiểm tra máy móc",
+    "actor": "human",
+    "key_point": "nhìn vào máy"
+   },
+   {
+    "t": [
+     135.55,
+     136.55
+    ],
+    "step": "Điều chỉnh linh kiện trên máy",
+    "actor": "human",
+    "key_point": "tay chạm vào bộ phận máy"
+   },
+   {
+    "t": [
+     136.55,
+     137.55
+    ],
+    "step": "Thao tác máy móc",
+    "actor": "human",
+    "key_point": "người mặc mũ vàng"
+   },
+   {
+    "t": [
+     137.55,
+     138.85
+    ],
+    "step": "Xử lý linh kiện",
+    "actor": "human",
+    "key_point": "chuyển động tay"
+   },
+   {
+    "t": [
+     138.85,
+     144.12
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": "vị trí trên bàn làm việc"
+   },
+   {
+    "t": [
+     164.15,
+     164.95
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": "sản phẩm nằm trên băng tải"
+   },
+   {
+    "t": [
+     164.95,
+     171.55
+    ],
+    "step": "Đặt sản phẩm vào khay đỏ",
+    "actor": "human",
+    "key_point": "khay đỏ trên băng tải, sản phẩm được đặt vào vị trí xác định"
+   }
+  ],
+  "pass_b_run": {
+   "fps": 4.0,
+   "recall": 0.111,
+   "precision": 0.077,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 337413,
+   "latency_s": 1499.0,
+   "fps_effective": 6.77,
+   "predicted": 39,
+   "truth": 27,
+   "recall_essential": 0.188,
+   "recall_time_only": 0.852,
+   "actor_accuracy": 0.739,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Dồn các cốc sản phẩm thành hàng trên băng tải",
+     "pred": "Xếp sản phẩm trên băng tải",
+     "score": 92
+    },
+    {
+     "truth": "Chuyển thùng carton đã mở dọc băng tải",
+     "pred": "Di chuyển hộp dọc theo băng tải",
+     "score": 76
+    },
+    {
+     "truth": "Đặt cốc sản phẩm lên băng tải theo vị trí cố định",
+     "pred": "Đặt sản phẩm vào vị trí trên băng tải",
+     "score": 86
+    }
+   ]
+  },
+  "pass_b_run_steps": [
+   {
+    "t": [
+     26.81,
+     32.51
+    ],
+    "step": "Xếp sản phẩm trên băng tải",
+    "actor": "human",
+    "key_point": "vị trí trên băng tải"
+   },
+   {
+    "t": [
+     32.51,
+     33.11
+    ],
+    "step": "Gắp linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "Vị trí nguồn là khu vực bên trái máy"
+   },
+   {
+    "t": [
+     33.11,
+     33.31
+    ],
+    "step": "Di chuyển đến hộp đựng",
+    "actor": "robot",
+    "key_point": "Hộp đựng nằm ở vị trí trung tâm"
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào hộp đựng",
+    "actor": "robot",
+    "key_point": "Linh kiện được đặt thẳng đứng vào hộp"
+   },
+   {
+    "t": [
+     51.13,
+     52.23
+    ],
+    "step": "Xoay hộp từ vị trí đứng sang nghiêng",
+    "actor": "robot",
+    "key_point": "Hộp nghiêng 45 độ, vị trí trên bàn đỡ"
+   },
+   {
+    "t": [
+     52.23,
+     54.43
+    ],
+    "step": "Di chuyển hộp dọc theo băng tải",
+    "actor": "robot",
+    "key_point": "Hộp di chuyển về phía trước, tốc độ ổn định"
+   },
+   {
+    "t": [
+     54.43,
+     55.74
+    ],
+    "step": "Đặt hộp vào khay",
+    "actor": "robot",
+    "key_point": "Hộp được đặt vào khay ngang, góc nghiêng 0 độ"
+   },
+   {
+    "t": [
+     55.74,
+     56.54
+    ],
+    "step": "Di chuyển đầu gắp đến vị trí lấy linh kiện",
+    "actor": "robot",
+    "key_point": "hướng đầu gắp hướng xuống băng tải"
+   },
+   {
+    "t": [
+     56.54,
+     56.74
+    ],
+    "step": "Gắp linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": "đầu gắp kẹp chặt linh kiện"
+   },
+   {
+    "t": [
+     56.74,
+     57.24
+    ],
+    "step": "Di chuyển đầu gắp đến vị trí đặt linh kiện",
+    "actor": "robot",
+    "key_point": "hướng đầu gắp hướng lên hộp"
+   },
+   {
+    "t": [
+     57.24,
+     58.24
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "linh kiện được đặt vào hộp đúng vị trí"
+   },
+   {
+    "t": [
+     58.24,
+     60.31
+    ],
+    "step": "Thu hồi đầu gắp",
+    "actor": "robot",
+    "key_point": "đầu gắp rời khỏi hộp"
+   },
+   {
+    "t": [
+     67.15,
+     72.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     72.55,
+     73.05
+    ],
+    "step": "Lấy linh kiện từ nguồn",
+    "actor": "robot",
+    "key_point": "vị trí nguồn cố định"
+   },
+   {
+    "t": [
+     73.05,
+     84.03
+    ],
+    "step": "Đặt linh kiện vào hộp giấy",
+    "actor": "robot",
+    "key_point": "hướng đặt thẳng đứng"
+   },
+   {
+    "t": [
+     84.03,
+     85.13
+    ],
+    "step": "Nhặt linh kiện từ khay",
+    "actor": "human",
+    "key_point": "vị trí khay đỏ"
+   },
+   {
+    "t": [
+     85.13,
+     87.03
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "human",
+    "key_point": "hướng xuống hộp"
+   },
+   {
+    "t": [
+     87.03,
+     92.64
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "human",
+    "key_point": "hướng và vị trí được điều chỉnh"
+   },
+   {
+    "t": [
+     87.03,
+     92.64
+    ],
+    "step": "Đặt sản phẩm vào vị trí trên băng tải",
+    "actor": "human",
+    "key_point": "hướng và vị trí được điều chỉnh"
+   },
+   {
+    "t": [
+     92.64,
+     93.64
+    ],
+    "step": "Gắp linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": "vị trí trên băng tải"
+   },
+   {
+    "t": [
+     93.64,
+     93.94
+    ],
+    "step": "Di chuyển đến vị trí hộp",
+    "actor": "robot",
+    "key_point": "hướng sang bên phải"
+   },
+   {
+    "t": [
+     93.94,
+     98.85
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí trung tâm hộp"
+   },
+   {
+    "t": [
+     110.29,
+     114.39
+    ],
+    "step": "Đặt sản phẩm tôm vào hộp",
+    "actor": "human",
+    "key_point": "hướng từ phải sang trái trên băng tải"
+   },
+   {
+    "t": [
+     114.39,
+     115.39
+    ],
+    "step": "Đặt sản phẩm vàng vào hộp",
+    "actor": "human",
+    "key_point": "hướng từ trái sang phải trên băng tải"
+   },
+   {
+    "t": [
+     115.39,
+     116.93
+    ],
+    "step": "Đưa sản phẩm thực phẩm vào hộp",
+    "actor": "machine",
+    "key_point": "thứ tự từ trái sang phải"
+   },
+   {
+    "t": [
+     116.93,
+     117.33
+    ],
+    "step": "Lấy linh kiện từ khay",
+    "actor": "robot",
+    "key_point": "vị trí trên khay"
+   },
+   {
+    "t": [
+     117.33,
+     123.6
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí trong hộp"
+   },
+   {
+    "t": [
+     130.75,
+     133.15
+    ],
+    "step": "Nhặt linh kiện từ vị trí nguồn",
+    "actor": "robot",
+    "key_point": "vị trí kẹp trên bề mặt linh kiện"
+   },
+   {
+    "t": [
+     133.15,
+     133.84
+    ],
+    "step": "Di chuyển đến vị trí đặt",
+    "actor": "robot",
+    "key_point": "hướng di chuyển từ vị trí nguồn đến vị trí đích"
+   },
+   {
+    "t": [
+     133.84,
+     134.45
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí đặt chính xác trên bề mặt hộp"
+   },
+   {
+    "t": [
+     134.45,
+     135.25
+    ],
+    "step": "Điều chỉnh mũ bảo hiểm",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     135.25,
+     137.45
+    ],
+    "step": "Di chuyển đến máy",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     137.45,
+     138.85
+    ],
+    "step": "Đặt linh kiện vào máy",
+    "actor": "human",
+    "key_point": null
+   },
+   {
+    "t": [
+     138.85,
+     139.25
+    ],
+    "step": "Nhặt sản phẩm từ băng tải",
+    "actor": "robot",
+    "key_point": "hướng xuống, vị trí trên băng tải"
+   },
+   {
+    "t": [
+     139.25,
+     139.85
+    ],
+    "step": "Di chuyển đến hộp",
+    "actor": "robot",
+    "key_point": "vị trí bên cạnh hộp"
+   },
+   {
+    "t": [
+     139.85,
+     144.12
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": "hướng thẳng, vị trí chính xác"
+   },
+   {
+    "t": [
+     164.15,
+     164.75
+    ],
+    "step": "Chuyển động tay trên khay đựng sản phẩm đỏ",
+    "actor": "human",
+    "key_point": "vị trí trên băng tải"
+   },
+   {
+    "t": [
+     164.75,
+     165.65
+    ],
+    "step": "Nhặt sản phẩm trắng và đặt vào khay đỏ",
+    "actor": "human",
+    "key_point": "thứ tự xếp"
+   },
+   {
+    "t": [
+     165.65,
+     171.55
+    ],
+    "step": "Xếp sản phẩm vào khay theo thứ tự",
+    "actor": "human",
+    "key_point": "thứ tự sắp xếp"
+   }
+  ],
+  "final": {
+   "fps": 4.0,
+   "recall": 0.111,
+   "precision": 0.125,
+   "order_accuracy": 1.0,
+   "key_point_recall": 0.0,
+   "tokens_used": 677683,
+   "latency_s": 3050.39,
+   "fps_effective": 6.68,
+   "predicted": 24,
+   "truth": 27,
+   "recall_essential": 0.125,
+   "recall_time_only": 0.815,
+   "actor_accuracy": 0.85,
+   "failed_segments": 0,
+   "provider": "remote",
+   "model": "",
+   "step_times": "segment",
+   "matched": [
+    {
+     "truth": "Dồn các cốc sản phẩm thành hàng trên băng tải",
+     "pred": "Nhặt sản phẩm",
+     "score": 76
+    },
+    {
+     "truth": "Lấy sản phẩm từ sọt nhựa xanh đặt lên băng tải",
+     "pred": "Đặt sản phẩm vào hộp",
+     "score": 75
+    },
+    {
+     "truth": "Đẩy khay thực phẩm vào máy dán màng",
+     "pred": "Đặt sản phẩm vào khay",
+     "score": 76
+    }
+   ]
+  },
+  "final_steps": [
+   {
+    "t": [
+     26.81,
+     32.51
+    ],
+    "step": "Nhặt sản phẩm",
+    "actor": "human",
+    "key_point": "vị trí trên băng tải"
+   },
+   {
+    "t": [
+     32.51,
+     33.31
+    ],
+    "step": "Gắp linh kiện",
+    "actor": "robot",
+    "key_point": "từ vị trí nguồn"
+   },
+   {
+    "t": [
+     33.31,
+     36.38
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vào hộp đựng"
+   },
+   {
+    "t": [
+     51.13,
+     52.93
+    ],
+    "step": "Xoay hộp",
+    "actor": null,
+    "key_point": "Hướng của hộp thay đổi từ thẳng đứng sang nghiêng, góc xoay tăng dần"
+   },
+   {
+    "t": [
+     52.93,
+     55.74
+    ],
+    "step": "Di chuyển hộp",
+    "actor": null,
+    "key_point": "Vị trí của hộp thay đổi theo băng tải, di chuyển liên tục"
+   },
+   {
+    "t": [
+     56.54,
+     57.04
+    ],
+    "step": "Di chuyển linh kiện đến hộp",
+    "actor": "robot",
+    "key_point": "hướng về phía hộp"
+   },
+   {
+    "t": [
+     57.04,
+     60.31
+    ],
+    "step": "Thả linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vào hộp mở"
+   },
+   {
+    "t": [
+     67.15,
+     72.55
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "human",
+    "key_point": "hướng lên hộp"
+   },
+   {
+    "t": [
+     73.35,
+     84.03
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí hộp ở trung tâm"
+   },
+   {
+    "t": [
+     84.03,
+     84.43
+    ],
+    "step": "Nhặt linh kiện từ thùng",
+    "actor": "human",
+    "key_point": "từ thùng đỏ và xanh"
+   },
+   {
+    "t": [
+     84.43,
+     87.03
+    ],
+    "step": "Đặt linh kiện vào thùng",
+    "actor": "human",
+    "key_point": "vào thùng chứa ngang hàng"
+   },
+   {
+    "t": [
+     87.03,
+     87.83
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "human",
+    "key_point": "hướng thẳng đứng, vị trí trên băng tải"
+   },
+   {
+    "t": [
+     92.64,
+     93.64
+    ],
+    "step": "Gắp linh kiện từ khay",
+    "actor": "robot",
+    "key_point": "hướng di chuyển xuống khay"
+   },
+   {
+    "t": [
+     93.64,
+     93.94
+    ],
+    "step": "Di chuyển đến vị trí đặt",
+    "actor": "robot",
+    "key_point": "hướng di chuyển sang hộp"
+   },
+   {
+    "t": [
+     93.94,
+     98.85
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí trong hộp"
+   },
+   {
+    "t": [
+     110.29,
+     115.89
+    ],
+    "step": "Đặt sản phẩm vào khay",
+    "actor": "human",
+    "key_point": "sắp xếp theo hàng ngang, vị trí trên khay"
+   },
+   {
+    "t": [
+     116.93,
+     117.23
+    ],
+    "step": "Nhặt linh kiện từ băng tải",
+    "actor": "robot",
+    "key_point": "băng tải ở bên trái"
+   },
+   {
+    "t": [
+     117.73,
+     123.6
+    ],
+    "step": "Đặt linh kiện vào hộp",
+    "actor": "robot",
+    "key_point": "vị trí hộp ở bên phải"
+   },
+   {
+    "t": [
+     130.75,
+     132.55
+    ],
+    "step": "Nhặt linh kiện",
+    "actor": "robot",
+    "key_point": "gripper đóng khi tiếp xúc với linh kiện"
+   },
+   {
+    "t": [
+     133.15,
+     134.45
+    ],
+    "step": "Di chuyển về vị trí ban đầu",
+    "actor": "robot",
+    "key_point": "cánh tay robot thu hồi"
+   },
+   {
+    "t": [
+     134.45,
+     134.95
+    ],
+    "step": "Điều chỉnh mũ bảo hộ",
+    "actor": "human",
+    "key_point": "bàn tay che mặt"
+   },
+   {
+    "t": [
+     137.55,
+     138.85
+    ],
+    "step": "Xử lý linh kiện",
+    "actor": "human",
+    "key_point": "chuyển động tay"
+   },
+   {
+    "t": [
+     138.85,
+     144.12
+    ],
+    "step": "Đặt sản phẩm vào hộp",
+    "actor": null,
+    "key_point": "vị trí trên bàn làm việc"
+   },
+   {
+    "t": [
+     164.95,
+     171.55
+    ],
+    "step": "Đặt sản phẩm vào khay đỏ",
+    "actor": "human",
+    "key_point": "khay đỏ trên băng tải, sản phẩm được đặt vào vị trí xác định"
+   }
+  ],
+  "latency_pass_a": {
+   "calls": 30,
+   "median_s": 53.8,
+   "mean_s": 51.7,
+   "total_s": 1551,
+   "out_tokens_median": 3049,
+   "out_tok_per_s": 59.3
+  },
+  "latency_pass_b": {
+   "calls": 30,
+   "median_s": 43.3,
+   "mean_s": 50.0,
+   "total_s": 1499,
+   "out_tokens_median": 2444,
+   "out_tok_per_s": 59.4
+  },
+  "segments": 30
+ }
+}

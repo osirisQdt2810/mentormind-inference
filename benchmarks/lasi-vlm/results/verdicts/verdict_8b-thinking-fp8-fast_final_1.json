@@ -1,0 +1,180 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 1,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 6,
+   "actor_ok": false,
+   "key_point_ok": true,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": 7,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 8,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 11,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 12,
+   "match": 12,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 13,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": 14,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 16,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 17,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 18,
+   "match": 17,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 19,
+   "match": 18,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 20,
+   "match": 19,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 21,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 22,
+   "match": 22,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 23,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 24,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  }
+ ],
+ "notes": "The run's timing is good. It splits most robot pick-and-place cycles (truth 5, 8, 10, 15, 20) into pick/place sub-steps that line up well, and it catches the side steps on the shrimp line, tray, filling and adjustment (17-19, 22). Its errors: it calls every cup a generic \"linh kiện\" (component), never sees the multi-gripper or the guide frame that holds the flaps, labels the truth's machine steps as robot, gets the direction of worker actions at the conveyor wrong (preds 0, 14, 23), and invents a \"đặt sản phẩm vào hộp\" step at 165-172 s where the truth has picking, grouping and capping cups."
+}

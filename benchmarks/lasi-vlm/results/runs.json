@@ -1,0 +1,47 @@
+[
+ {
+  "model": "8B Instruct",
+  "weights": "BF16",
+  "scores": "score_8b-instruct.json",
+  "label": "8b-instruct",
+  "verdicts": "verdicts",
+  "job_s": 558,
+  "note": "đủ cả job"
+ },
+ {
+  "model": "8B Thinking",
+  "weights": "BF16",
+  "scores": "score_8b-thinking.json",
+  "label": "8b-thinking",
+  "verdicts": "verdicts",
+  "job_s": 6180,
+  "note": "tới lúc lưu bước nháp; bước lý do bị dừng để lấy GPU đo tối ưu"
+ },
+ {
+  "model": "8B Thinking",
+  "weights": "FP8",
+  "scores": "score_8b-thinking-fp8.json",
+  "label": "8b-thinking-fp8",
+  "verdicts": "verdicts",
+  "job_s": 3947,
+  "note": "job dừng ở bước lý do 5/14 (lỗi AC-29, đã sửa)"
+ },
+ {
+  "model": "30B-A3B Thinking",
+  "weights": "AWQ 4-bit",
+  "scores": "score_30b-thinking.json",
+  "label": "30b-thinking",
+  "verdicts": "verdicts",
+  "job_s": 1853,
+  "note": "đủ cả job, JSON_WHITESPACE=compact"
+ },
+ {
+  "model": "8B Thinking, tối ưu (4 request cùng lúc + ngram)",
+  "weights": "FP8",
+  "scores": "score_8b-thinking-fp8-fast.json",
+  "label": "8b-thinking-fp8-fast",
+  "verdicts": "verdicts",
+  "job_s": 1371,
+  "note": "đủ cả job, KNOWHOW_VLM_CONCURRENCY=4 + ngram"
+ }
+]

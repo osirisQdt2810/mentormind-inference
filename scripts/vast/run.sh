@@ -2,6 +2,7 @@
 # MentorMind inference server on a Vast.ai PyTorch instance (run as root, after every Start):
 #
 #   vllm      (GPU) Qwen3-VL-8B-Instruct BF16 on 127.0.0.1:18000       supervisor service "vllm"
+#                   (VLM_VARIANT / VLM_MODEL pick another model; SPEC_CONFIG = speculative decoding)
 #   gateway   (CPU) ASR + embeddings + documents, every other /v1/*    supervisor service "gateway"
 #                   proxied to vLLM, on 127.0.0.1:18080
 #   Caddy     token edge (Authorization: Bearer $OPEN_BUTTON_TOKEN), external 10100 -> gateway
@@ -22,7 +23,28 @@ set -euo pipefail
 
 main() { # parsed whole before it runs: updating the clone cannot change the script mid-run
 
-MODEL="Qwen/Qwen3-VL-8B-Instruct"
+# The VLM: VLM_MODEL = any Hugging Face id vLLM can serve, or VLM_VARIANT = one of the preset ones
+# (benchmarks/lasi-vlm/README.md). A *Thinking* model gets the qwen3 reasoning parser (it moves
+# <think>…</think> out of the answer; structured output applies after it) and a 16k answer budget.
+VLM_VARIANT=${VLM_VARIANT:-instruct}
+case "$VLM_VARIANT" in
+  instruct)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Instruct" ;;
+  thinking)     DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking" ;;
+  thinking-fp8) DEFAULT_MODEL="Qwen/Qwen3-VL-8B-Thinking-FP8" ;;
+  30b-thinking) DEFAULT_MODEL="QuantTrio/Qwen3-VL-30B-A3B-Thinking-AWQ" ;;
+  *) echo "VLM_VARIANT=$VLM_VARIANT: instruct | thinking | thinking-fp8 | 30b-thinking (or set VLM_MODEL)" >&2; exit 1 ;;
+esac
+MODEL=${VLM_MODEL:-$DEFAULT_MODEL}
+case "$MODEL" in
+  *Thinking*) REASONING=1 ANSWER_TOKENS=16384 ;;
+  *)          REASONING=0 ANSWER_TOKENS=8192 ;;
+esac
+SPEC_CONFIG=${SPEC_CONFIG:-}       # vLLM --speculative-config JSON, e.g. {"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}
+# compact = JSON answers without optional whitespace (structured outputs disable_any_whitespace): with
+# the free whitespace the JSON grammar allows, Qwen3-VL-30B-A3B looped on "\n\n  " up to max_tokens in
+# 10 of 41 LASI answers (8B: 0 of 180). any = vLLM's default.
+JSON_WHITESPACE=${JSON_WHITESPACE:-compact}
+case "$JSON_WHITESPACE" in compact|any) ;; *) echo "JSON_WHITESPACE=$JSON_WHITESPACE: compact | any" >&2; exit 1 ;; esac
 VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt
 CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, default requirements/gateway-linux-cpu.txt
 ENGINE=/opt/mentormind-inference   # this repo: vLLM launcher + gateway
@@ -155,9 +177,9 @@ log "Gateway deps: $(rel "$GW_REQS")$GW_FROM ($GW_INSTALL)"
 sync_venv "$VENV" "$VLLM_REQS" "$VLLM_HASH" "$VLLM_INSTALL" "vLLM (~5 phút lần đầu)"
 
 # 4. VLM weights (17 GB, once)
-if ! ls "$HF_HOME"/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/config.json >/dev/null 2>&1; then
+if ! ls "$HF_HOME"/hub/models--${MODEL//\//--}/snapshots/*/config.json >/dev/null 2>&1; then
   log "Tải $MODEL (~17 GB)…"
-  /venv/main/bin/hf download "$MODEL"
+  "$VENV/bin/hf" download "$MODEL"   # huggingface_hub comes with vLLM: no need for the template venv
 fi
 
 # 5. CPU venv of the gateway: when missing or when its requirements change
@@ -175,7 +197,23 @@ if [ "$(cat "$MODELS_MARK" 2>/dev/null)" != "$MODELS_WANT" ]; then
 fi
 
 # 7. Supervisor services + Caddy entry
-EXTRA_ARGS='["--kv-cache-dtype","'$KV_CACHE_DTYPE'","--cpu-offload-gb","'$CPU_OFFLOAD_GB'","--mm-processor-kwargs","{\"min_pixels\":'$MIN_PIXELS',\"max_pixels\":'$MIN_PIXELS'}"]'
+# JSON list of vLLM flags, built by Python so a JSON value (mm-processor-kwargs, SPEC_CONFIG) is quoted right.
+EXTRA_ARGS=$("$VENV/bin/python" - "$KV_CACHE_DTYPE" "$CPU_OFFLOAD_GB" "$MIN_PIXELS" "$REASONING" "$SPEC_CONFIG" "$JSON_WHITESPACE" <<'PY'
+import json, sys
+kv, offload, pixels, reasoning, spec, whitespace = sys.argv[1:]
+args = ["--kv-cache-dtype", kv, "--cpu-offload-gb", offload,
+        "--mm-processor-kwargs", json.dumps({"min_pixels": int(pixels), "max_pixels": int(pixels)})]
+if reasoning == "1":
+    args += ["--reasoning-parser", "qwen3"]
+if spec:
+    args += ["--speculative-config", json.dumps(json.loads(spec))]
+if whitespace == "compact":  # dotted keys merge into structured outputs (keeps --reasoning-parser);
+    # vLLM accepts disable_any_whitespace only with an explicit xgrammar/guidance backend.
+    args += ["--structured-outputs-config.backend", "xgrammar",
+             "--structured-outputs-config.disable_any_whitespace", "true"]
+print(json.dumps(args))
+PY
+)
 # The requirements hash is part of each script: new libraries restart the service that uses them
 # (the hash skips comments: editing a requirements header restarts nothing).
 write_if_changed "$SCRIPTS/vllm.sh" <<EOF
@@ -238,7 +276,7 @@ stdout_logfile_backups=0
 EOF
 done
 # The public port goes to the gateway, which proxies the VLM (older instances pointed it at vLLM).
-PORTAL_CHANGED=$(/venv/main/bin/python - <<EOF
+PORTAL_CHANGED=$("$VENV/bin/python" - <<EOF   # pyyaml comes with vLLM
 import yaml
 path = "/etc/portal.yaml"
 with open(path) as f:
@@ -316,7 +354,7 @@ else
   URL=$(curl -s "http://localhost:11111/get-existing-quick-tunnel/$TARGET_ENC" | tr -d '"')
   case "$URL" in https://*) ;; *)
     URL=$(curl -s -X POST "http://localhost:11111/start-quick-tunnel/$TARGET_ENC" \
-          | /venv/main/bin/python -c "import json,sys; print(json.load(sys.stdin)['tunnel_url'])") ;;
+          | "$VENV/bin/python" -c "import json,sys; print(json.load(sys.stdin)['tunnel_url'])") ;;
   esac
 fi
 
@@ -343,7 +381,8 @@ KNOWHOW_VLM_BASE_URL=$URL/v1
 KNOWHOW_VLM_MODEL=$MODEL
 KNOWHOW_VLM_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_VLM_MAX_FRAMES=40
-KNOWHOW_VLM_MAX_TOKENS=8192
+KNOWHOW_VLM_MAX_TOKENS=$ANSWER_TOKENS
+KNOWHOW_LLM_MAX_TOKENS=$ANSWER_TOKENS
 KNOWHOW_INFERENCE_URL=$URL/v1
 KNOWHOW_INFERENCE_API_KEY=$OPEN_BUTTON_TOKEN
 KNOWHOW_ASR_PROVIDER=remote

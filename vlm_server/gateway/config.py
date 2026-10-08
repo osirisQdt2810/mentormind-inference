@@ -23,6 +23,11 @@ class GatewayConfig(BaseSettings):
     vlm_upstream: str = "http://127.0.0.1:18000"
     #: One VLM request may decode for minutes; the proxy waits this long.
     proxy_timeout_s: float = Field(default=1800.0, gt=0)
+    #: A non-streaming ``/v1/chat/completions`` answer slower than this many seconds gets its headers
+    #: (200, JSON) at once and a space every this many seconds until the JSON comes: a tunnel cuts a
+    #: response that sends nothing for minutes (ngrok free: 503 after ~5 min; a Thinking model or a
+    #: long merge can decode longer). JSON allows the leading spaces. 0 = off.
+    heartbeat_s: float = Field(default=15.0, ge=0)
 
     #: faster-whisper model size or Hugging Face id ("small" = Systran/faster-whisper-small).
     asr_model: str = "small"
