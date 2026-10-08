@@ -1,0 +1,24 @@
+=== 14:40 fp8-base (spec: none) modes 1,4,6
+Prefix cache hit rate: 66.7%
+=== 14:51 fp8-ngram (spec: {"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4,"prompt_lookup_min":2}) modes 1,4
+Accepted throughput: 43.60 tokens/s
+Avg Draft acceptance rate: 26.8%
+Avg Draft acceptance rate: 35.0%
+Mean acceptance length: 2.07
+Mean acceptance length: 2.38
+Prefix cache hit rate: 50.1%
+=== 15:00 fp8-eagle3-aq (spec: {"method":"eagle3","model":"AQ-MedAI/Qwen3-VL-8B-Instruct-eagle3","num_speculative_tokens":3}) modes 1,4
+Accepted throughput: 27.20 tokens/s
+Avg Draft acceptance rate: 21.0%
+Avg Draft acceptance rate: 23.9%
+Mean acceptance length: 1.63
+Mean acceptance length: 1.72
+Prefix cache hit rate: 44.6%
+=== 15:10 fp8-eagle3-taobao (spec: {"method":"eagle3","model":"taobao-mnn/Qwen3-VL-8B-Instruct-Eagle3","num_speculative_tokens":3}) modes 1,4
+Accepted throughput: 29.00 tokens/s
+Avg Draft acceptance rate: 11.8%
+Avg Draft acceptance rate: 15.9%
+Mean acceptance length: 1.33
+Mean acceptance length: 1.43
+Prefix cache hit rate: 50.0%
+=== 15:19 done

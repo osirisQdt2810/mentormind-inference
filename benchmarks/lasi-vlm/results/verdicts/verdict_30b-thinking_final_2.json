@@ -1,0 +1,117 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": 4,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 1,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 7,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 8,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": 13,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 11,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 12,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 21,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": 23,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  }
+ ],
+ "notes": "The run's timing lines up well with the main segments. It captures the first robot pick-and-place, the empty cartons moving on the conveyor, the capping step, the robot test run and the engineer watching the robot, mostly with the right actors. On the other hand, it misses the intro processing steps, the carton erecting and the 55.7-60.3 s and 92.6-98.8 s robot pick-and-place steps (it gives only sub-motions for the second one). It also names components and boxes where the video shows food and crates, labels the top-loading machine as a robot, and gets the direction wrong twice: it says items are put into a box at 84-87 s and onto the conveyor at 164-171 s. None of its key points match the ground truth."
+}

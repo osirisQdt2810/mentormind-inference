@@ -1,0 +1,117 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": 4,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 1,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 7,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 8,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": 13,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 11,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 12,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 21,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": 23,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  }
+ ],
+ "notes": "The run got the timing of most essential pick-and-place and manual segments right, and it correctly identified the capping, conveyor transport, robot test-run and robot-observation steps. Its main errors are generic objects ('sản phẩm', 'hộp', 'linh kiện' rather than red-lidded cups and cartons), robot/machine confusion on the gantry placers, splitting cycles into unlabelled sub-motions, key points that miss the multi-gripper and guide-frame details, and two contradictory actions: placing components into a box at 84-87 s, and placing product onto the conveyor at 164-171 s, where the workers are actually removing, grouping and capping cups."
+}

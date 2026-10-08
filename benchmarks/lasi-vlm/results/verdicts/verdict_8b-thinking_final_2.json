@@ -1,0 +1,145 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": 4,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 1,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 8,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": 13,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 11,
+   "match": 12,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 12,
+   "match": 14,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": 18,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 16,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 17,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 18,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 19,
+   "match": 24,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  }
+ ],
+ "notes": "The run's timing is accurate: it finds the essential robot/machine pick-and-place cycles (truth 5, 8, 10, 15, 20) and most worker packing, lidding and conveyor steps, though it usually splits one cycle into pick and place sub-steps and calls the cups the generic 'linh kiện'. Its weaknesses are that none of its key points match the truth (no multi-gripper head, no guide frame, no 2 s cycle), it labels the case-packers as robot where the truth says machine, it misses the carton-erecting and engineer steps, and it makes up a worker placing parts into a box at 138.8–144.1 s, when the truth shows an engineer inspecting the robot cell."
+}

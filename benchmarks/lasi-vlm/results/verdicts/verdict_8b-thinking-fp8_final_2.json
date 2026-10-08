@@ -1,0 +1,173 @@
+{
+ "preds": [
+  {
+   "i": 0,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 1,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 2,
+   "match": 5,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 3,
+   "match": 6,
+   "actor_ok": false,
+   "key_point_ok": true,
+   "wrong": false
+  },
+  {
+   "i": 4,
+   "match": 7,
+   "actor_ok": false,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 5,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 6,
+   "match": 8,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 7,
+   "match": 9,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 8,
+   "match": 10,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 9,
+   "match": 12,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 10,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 11,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": true
+  },
+  {
+   "i": 12,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 13,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 14,
+   "match": 15,
+   "actor_ok": true,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 15,
+   "match": 17,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 16,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 17,
+   "match": 20,
+   "actor_ok": false,
+   "key_point_ok": false,
+   "wrong": false
+  },
+  {
+   "i": 18,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 19,
+   "match": 21,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 20,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 21,
+   "match": 22,
+   "actor_ok": true,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 22,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  },
+  {
+   "i": 23,
+   "match": null,
+   "actor_ok": null,
+   "key_point_ok": null,
+   "wrong": false
+  }
+ ],
+ "notes": "The run's time boundaries line up closely with the truth on the robot and machine pick-and-place steps and the carton handling (truth 5, 6, 7, 8, 10, 15, 20). It falls down on content: it calls every object \"linh kiện/hộp\" and never names the red-lidded cups or the multi-gripper key points, it leaves machines unlabelled (actor None) or calls them robots, it reverses the worker's direction of movement at 84-88 s, and it misses the worker lidding and cup-placing steps (13, 14, 24-26) and most of the side steps."
+}
