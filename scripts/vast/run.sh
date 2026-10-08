@@ -40,6 +40,11 @@ case "$MODEL" in
   *)          REASONING=0 ANSWER_TOKENS=8192 ;;
 esac
 SPEC_CONFIG=${SPEC_CONFIG:-}       # vLLM --speculative-config JSON, e.g. {"method":"ngram","num_speculative_tokens":4,"prompt_lookup_max":4}
+# compact = JSON answers without optional whitespace (structured outputs disable_any_whitespace): with
+# the free whitespace the JSON grammar allows, Qwen3-VL-30B-A3B looped on "\n\n  " up to max_tokens in
+# 10 of 41 LASI answers (8B: 0 of 180). any = vLLM's default.
+JSON_WHITESPACE=${JSON_WHITESPACE:-compact}
+case "$JSON_WHITESPACE" in compact|any) ;; *) echo "JSON_WHITESPACE=$JSON_WHITESPACE: compact | any" >&2; exit 1 ;; esac
 VENV=/opt/vllm                     # vLLM (GPU): VLLM_REQUIREMENTS, default requirements/vllm-linux-cuda.txt
 CPU_VENV=/opt/inference-cpu        # gateway (CPU): GATEWAY_REQUIREMENTS, default requirements/gateway-linux-cpu.txt
 ENGINE=/opt/mentormind-inference   # this repo: vLLM launcher + gateway
@@ -193,15 +198,17 @@ fi
 
 # 7. Supervisor services + Caddy entry
 # JSON list of vLLM flags, built by Python so a JSON value (mm-processor-kwargs, SPEC_CONFIG) is quoted right.
-EXTRA_ARGS=$("$VENV/bin/python" - "$KV_CACHE_DTYPE" "$CPU_OFFLOAD_GB" "$MIN_PIXELS" "$REASONING" "$SPEC_CONFIG" <<'PY'
+EXTRA_ARGS=$("$VENV/bin/python" - "$KV_CACHE_DTYPE" "$CPU_OFFLOAD_GB" "$MIN_PIXELS" "$REASONING" "$SPEC_CONFIG" "$JSON_WHITESPACE" <<'PY'
 import json, sys
-kv, offload, pixels, reasoning, spec = sys.argv[1:]
+kv, offload, pixels, reasoning, spec, whitespace = sys.argv[1:]
 args = ["--kv-cache-dtype", kv, "--cpu-offload-gb", offload,
         "--mm-processor-kwargs", json.dumps({"min_pixels": int(pixels), "max_pixels": int(pixels)})]
 if reasoning == "1":
     args += ["--reasoning-parser", "qwen3"]
 if spec:
     args += ["--speculative-config", json.dumps(json.loads(spec))]
+if whitespace == "compact":  # dotted key: merges into structured outputs, keeps --reasoning-parser
+    args += ["--structured-outputs-config.disable_any_whitespace", "true"]
 print(json.dumps(args))
 PY
 )
