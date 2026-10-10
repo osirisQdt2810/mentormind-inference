@@ -196,10 +196,14 @@ MODELS_MARK="$HF_HOME/.mentormind-inference-models"
 MODELS_WANT="asr=$ASR_MODEL embed=$EMBED_MODEL docling=$DOCLING_MODELS reqs=$GW_HASH"
 if [ "$(cat "$MODELS_MARK" 2>/dev/null)" != "$MODELS_WANT" ]; then
   log "Tải model CPU: faster-whisper $ASR_MODEL, $EMBED_MODEL (~2.3 GB), Docling…"
-  "$CPU_VENV/bin/python" -c 'import sys; from faster_whisper import download_model; download_model(sys.argv[1])' "$ASR_MODEL"
-  "$CPU_VENV/bin/python" -c 'import sys; from transformers import AutoModel, AutoTokenizer; AutoTokenizer.from_pretrained(sys.argv[1]); AutoModel.from_pretrained(sys.argv[1])' "$EMBED_MODEL"
-  "$CPU_VENV/bin/docling-tools" models download -o "$DOCLING_MODELS"
-  echo "$MODELS_WANT" > "$MODELS_MARK"
+  # The mark only after all three: a failed download is retried by the next run instead of skipped.
+  if "$CPU_VENV/bin/python" -c 'import sys; from faster_whisper import download_model; download_model(sys.argv[1])' "$ASR_MODEL" \
+    && "$CPU_VENV/bin/python" -c 'import sys; from transformers import AutoModel, AutoTokenizer; AutoTokenizer.from_pretrained(sys.argv[1]); AutoModel.from_pretrained(sys.argv[1])' "$EMBED_MODEL" \
+    && "$CPU_VENV/bin/docling-tools" models download -o "$DOCLING_MODELS"; then
+    echo "$MODELS_WANT" > "$MODELS_MARK"
+  else
+    log "CẢNH BÁO: tải model CPU lỗi (xem log phía trên); gateway vẫn chạy, lần chạy run.sh sau sẽ tải lại."
+  fi
 fi
 
 # 7. Supervisor services + Caddy entry
