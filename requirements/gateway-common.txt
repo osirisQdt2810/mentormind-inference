@@ -22,4 +22,7 @@ av>=11,<19
 # docling-core, which refuses a newer schema. Bump together with the client's lock.
 docling==2.132.0
 docling-core==2.99.0
+# rapidocr 3.10 moved PP_OCRV6_LANGS out of rapidocr.utils.model_resolver: docling 2.132 then fails to
+# resolve its OCR models (docling-tools models download, and OCR at run time). Same as the client's uv.lock.
+rapidocr==3.9.2
 transformers>=4.44
