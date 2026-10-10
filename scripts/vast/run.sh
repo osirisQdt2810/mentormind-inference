@@ -71,7 +71,7 @@ KV_CACHE_DTYPE=${KV_CACHE_DTYPE:-fp8}   # fp8 halves the KV cache per token: 64K
 CPU_OFFLOAD_GB=${CPU_OFFLOAD_GB:-0}     # weights moved to RAM to free VRAM for KV; slow over PCIe
 GPU_UTIL=${GPU_UTIL:-0.94}             # share of the 24 GB vLLM may use (64K FP8 needs 0.94)
 MIN_PIXELS=524288            # exactly 512 tokens per image (min = max = 512 * 32 * 32); no ceiling costs ~1.5 GiB VRAM → no 64K
-NGROK_DOMAIN=${NGROK_DOMAIN:-tiptop-ritzy-finisher.ngrok-free.dev}   # ngrok free static domain (authtoken: ngrok config add-authtoken …)
+NGROK_DOMAIN=${NGROK_DOMAIN:-tiptop-ritzy-finisher.ngrok-free.dev}   # ngrok free static domain (authtoken: NGROK_AUTHTOKEN, step 9)
 TARGET_ENC="http%3A%2F%2Flocalhost%3A${EXTERNAL_PORT}"
 SCRIPTS=/opt/supervisor-scripts
 ENV_OUT=/root/mentormind-inference.env
@@ -329,9 +329,17 @@ log "Gateway sẵn sàng (ASR, embeddings, documents; phần /v1 còn lại → 
 
 # 9. Public HTTPS URL to the Caddy port (token auth stays on).
 #    ngrok static domain when this box has an ngrok authtoken (fixed URL across Stop/Start);
-#    otherwise a Cloudflare quick tunnel (new URL after every Start).
-if ngrok config check >/dev/null 2>&1 && grep -q "authtoken:" /root/.config/ngrok/ngrok.yml 2>/dev/null; then
-  command -v ngrok >/dev/null || curl -sSL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | tar -xz -C /usr/local/bin
+#    otherwise a Cloudflare quick tunnel (new URL after every Start). A new instance has neither
+#    ngrok nor its config: NGROK_AUTHTOKEN=… bash run.sh once installs ngrok and saves the token.
+NGROK_YML=/root/.config/ngrok/ngrok.yml
+if [ -n "${NGROK_AUTHTOKEN:-}" ] || grep -q "authtoken:" "$NGROK_YML" 2>/dev/null; then
+  if ! command -v ngrok >/dev/null; then
+    log "Cài ngrok vào /usr/local/bin…"
+    curl -sSL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | tar -xz -C /usr/local/bin
+  fi
+  [ -z "${NGROK_AUTHTOKEN:-}" ] || ngrok config add-authtoken "$NGROK_AUTHTOKEN" >/dev/null
+fi
+if command -v ngrok >/dev/null && ngrok config check >/dev/null 2>&1 && grep -q "authtoken:" "$NGROK_YML" 2>/dev/null; then
   write_if_changed "$SCRIPTS/ngrok.sh" <<EOF
 #!/bin/bash
 export HOME=/root

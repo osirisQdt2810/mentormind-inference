@@ -198,6 +198,8 @@ Các bước:
    script sinh ra cho nó thay đổi hoặc nó không ở trạng thái RUNNING. Script của mỗi service ghi kèm hash requirements
    của nó, script gateway ghi thêm commit: code mới chỉ khởi động lại gateway (vài giây), không đụng vLLM (vài phút).
 7. Mở URL public: domain tĩnh ngrok nếu máy có authtoken ngrok, nếu không thì Cloudflare quick tunnel (URL đổi sau mỗi lần Start).
+   Instance mới chưa có ngrok: chạy lần đầu `NGROK_AUTHTOKEN=<authtoken của tài khoản sở hữu domain> bash run.sh`, script cài
+   ngrok và lưu token vào `/root/.config/ngrok/ngrok.yml`; các lần sau chỉ cần `bash run.sh`.
 8. Tự kiểm tra qua URL public: `GET /v1/models` (200 khi có token) và `POST /v1/embeddings` với `"xin chào"` (vector 1024 chiều).
 9. In ra các dòng `.env` cho client MentorMind (lưu ở `/root/mentormind-inference.env`):
 
@@ -225,6 +227,7 @@ KNOWHOW_DOC_EXTRACTOR=remote
 | `JSON_WHITESPACE` | theo bản (`30b-thinking`: `compact`, còn lại `any`) | `compact` = JSON trả lời không có khoảng trắng tuỳ ý (`disable_any_whitespace` của structured outputs, backend xgrammar): với khoảng trắng tự do, Qwen3-VL-30B-A3B lặp `\n\n  ` tới hết `max_tokens` ở 10/44 câu trả lời trên LASI (8B: 2/242, MentorMind hỏi lại một lần). `any` = mặc định của vLLM |
 | `CLIENT_CONCURRENCY` | `4` | In ra thành `KNOWHOW_VLM_CONCURRENCY` (MentorMind gửi chừng ấy request cùng lúc; vLLM gộp lại) |
 | `NGROK_DOMAIN` | `tiptop-ritzy-finisher.ngrok-free.dev` | Domain tĩnh ngrok |
+| `NGROK_AUTHTOKEN` | (trống) | Một lần trên instance mới: cài ngrok và lưu token (của tài khoản sở hữu `NGROK_DOMAIN`) vào `/root/.config/ngrok/ngrok.yml`. Không có token nào thì dùng Cloudflare quick tunnel |
 | `MAX_MODEL_LEN` / `KV_CACHE_DTYPE` / `GPU_UTIL` | `65536` / `fp8` / `0.94` | Context 64K trên card 24 GB nhờ KV cache FP8 |
 | `CPU_OFFLOAD_GB` | `0` | GB trọng số chuyển sang RAM để dành VRAM cho KV cache |
 | `ASR_MODEL` / `EMBED_MODEL` | `small` / `BAAI/bge-m3` | Model của gateway |
